@@ -1,0 +1,92 @@
+export interface Order {
+  id: number;
+  order_serial: string;
+  customer: {
+    id: number;
+    name: string;
+    company_name: string | null;
+    email: string | null;
+    phone: string;
+    billing_address: string;
+    city: string;
+    state: string;
+    gst_number: string | null;
+  } | null;
+  order_source: string;
+  order_date: string;
+  expected_delivery_date: string | null;
+  subtotal: string;
+  discount_amount: string;
+  tax_amount: string;
+  grand_total: string;
+  currency: string | null;
+  exchange_rate: string | null;
+  status: string;
+  reference_notes: string | null;
+  notes: string | null;
+  created_by: { id: number; first_name: string; last_name: string; email: string } | null;
+  approved_by: { id: number; first_name: string; last_name: string; email: string } | null;
+  approved_at: string | null;
+  confirmed_at: string | null;
+  pdf_generated_at: string | null;
+  items: OrderItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderItem {
+  id: number;
+  quotation_id: number | null;
+  quotation_item_id: number | null;
+  source_type: "manual" | "quotation";
+  item_no: number;
+  description: string;
+  unit: string;
+  quoted_quantity: string | null;
+  ordered_quantity: string;
+  remaining_order_quantity: string;
+  unit_price: string;
+  discount_percentage: string;
+  discount_amount: string;
+  tax_percentage: string;
+  tax_amount: string;
+  line_total: string;
+  remarks: string | null;
+  sort_order: number;
+}
+
+export interface OrderFormData {
+  customer_id: string;
+  order_date: string;
+  expected_delivery_date: string;
+  reference_notes: string;
+  notes: string;
+  items: OrderItemFormData[];
+}
+
+export interface OrderItemFormData {
+  quotation_item_id?: string;
+  quotation_id?: string;
+  source_type: "manual" | "quotation";
+  description: string;
+  unit: string;
+  ordered_quantity: string;
+  unit_price: string;
+  discount_percentage: string;
+  tax_percentage: string;
+  remarks: string;
+  quoted_quantity?: string;
+  quotation_serial?: string;
+}
+
+export interface OrderListParams {
+  search?: string;
+  page?: number;
+  per_page?: number;
+  sort?: string;
+  direction?: "asc" | "desc";
+  status?: string;
+  customer_id?: string;
+  date_from?: string;
+  date_to?: string;
+}

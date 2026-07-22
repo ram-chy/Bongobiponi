@@ -1,0 +1,203 @@
+{
+  "info": {
+    "name": "ERP - Order Booking Module",
+    "description": "Enterprise Order Booking Management API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "auth_token",
+      "value": ""
+    },
+    {
+      "key": "customer_id",
+      "value": "1"
+    },
+    {
+      "key": "quotation_item_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set('auth_token', jsonData.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Manual Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"order_date\": \"2026-06-28\",\n  \"expected_delivery_date\": \"2026-07-05\",\n  \"notes\": \"Urgent delivery requested\",\n  \"items\": [\n    {\n      \"description\": \"Office Desk Wooden\",\n      \"unit\": \"pcs\",\n      \"ordered_quantity\": 5,\n      \"unit_price\": 8500,\n      \"discount_percentage\": 10,\n      \"tax_percentage\": 18\n    },\n    {\n      \"description\": \"Office Chair Ergonomic\",\n      \"unit\": \"pcs\",\n      \"ordered_quantity\": 10,\n      \"unit_price\": 12500,\n      \"discount_percentage\": 5,\n      \"tax_percentage\": 18\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "Create Order from Quotation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"order_date\": \"2026-06-28\",\n  \"expected_delivery_date\": \"2026-07-10\",\n  \"notes\": \"Order from approved quotation\",\n  \"items\": [\n    {\n      \"quotation_item_id\": {{quotation_item_id}},\n      \"ordered_quantity\": 3\n    },\n    {\n      \"description\": \"Additional Custom Item\",\n      \"unit\": \"job\",\n      \"ordered_quantity\": 1,\n      \"unit_price\": 5000,\n      \"discount_percentage\": 0,\n      \"tax_percentage\": 18,\n      \"remarks\": \"Manual addition\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["orders"],
+              "query": [
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "status", "value": "", "disabled": true },
+                { "key": "customer_id", "value": "", "disabled": true },
+                { "key": "order_source", "value": "", "disabled": true },
+                { "key": "created_by", "value": "", "disabled": true },
+                { "key": "order_serial", "value": "", "disabled": true },
+                { "key": "date_from", "value": "", "disabled": true },
+                { "key": "date_to", "value": "", "disabled": true },
+                { "key": "sort", "value": "created_at", "disabled": true },
+                { "key": "direction", "value": "desc", "disabled": true },
+                { "key": "per_page", "value": "15" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1"]
+            }
+          }
+        },
+        {
+          "name": "Update Order",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expected_delivery_date\": \"2026-07-15\",\n  \"notes\": \"Delivery date extended\",\n  \"items\": [\n    {\n      \"description\": \"Office Desk Wooden\",\n      \"unit\": \"pcs\",\n      \"ordered_quantity\": 5,\n      \"unit_price\": 8500,\n      \"discount_percentage\": 10,\n      \"tax_percentage\": 18\n    },\n    {\n      \"description\": \"Office Chair Ergonomic - Premium\",\n      \"unit\": \"pcs\",\n      \"ordered_quantity\": 8,\n      \"unit_price\": 15000,\n      \"discount_percentage\": 5,\n      \"tax_percentage\": 18\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/1",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Order",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1"]
+            }
+          }
+        },
+        {
+          "name": "Restore Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1/restore",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "restore"]
+            }
+          }
+        },
+        {
+          "name": "Download Order PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/1/download-pdf",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1", "download-pdf"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
