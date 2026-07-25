@@ -77,6 +77,7 @@ return new class extends Migration
         // CRIT-015: Fix activity_logs.user_id FK to nullOnDelete (currently cascades)
         Schema::table('activity_logs', function (Blueprint $table) {
             $table->dropForeign(['user_id']);
+            $table->unsignedBigInteger('user_id')->nullable()->change();
             $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
         });
 
