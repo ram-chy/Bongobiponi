@@ -58,6 +58,8 @@ class OrderService
             unset($data['items']);
 
             if ($items !== null) {
+                $this->ensureNoDownstreamReferences($order);
+
                 $data['order_source'] = $this->determineOrderSource($items);
                 $preparedItems = $this->prepareItems($items, $data['customer_id'] ?? $order->customer_id);
                 $calculated = $this->calculateTotals($preparedItems);
@@ -76,6 +78,17 @@ class OrderService
 
             return $order->load(['customer', 'creator', 'items']);
         });
+    }
+
+    private function ensureNoDownstreamReferences(Order $order): void
+    {
+        $hasDownstream = \App\Models\SalesOrderItem::where('order_id', $order->id)->exists();
+        if ($hasDownstream) {
+            throw new \InvalidArgumentException(
+                'Cannot modify order items. This order has associated Sales Orders. '
+                . 'Please delete the related Sales Orders first before modifying the order items.'
+            );
+        }
     }
 
     public function findTrashed(int $id): Order
@@ -228,18 +241,11 @@ class OrderService
 
     public function autoCompleteIfAllDelivered(Order $order, $salesOrderIds = null): void
     {
-        if ($salesOrderIds !== null) {
-            $salesOrderIds = collect($salesOrderIds)->filter();
-            if ($salesOrderIds->isEmpty()) {
-                return;
-            }
+        // CRIT-008 fix: Always check ALL SalesOrderItems for this Order, not just affected ones
+        $items = SalesOrderItem::where('order_id', $order->id)->get();
 
-            $items = SalesOrderItem::whereIn('sales_order_id', $salesOrderIds)
-                ->where('order_id', $order->id)
-                ->get();
-        } else {
-            $order->load('salesOrderItems');
-            $items = $order->salesOrderItems;
+        if ($items->isEmpty()) {
+            return;
         }
 
         $allDelivered = $items->every(

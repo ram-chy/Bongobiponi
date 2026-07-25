@@ -75,9 +75,11 @@ class ExpenseController extends Controller
 
     public function restore(int $id): JsonResponse
     {
-        $expense = $this->expenseService->restore($id);
+        $expense = $this->expenseService->findTrashed($id);
 
         $this->authorize('restore', $expense);
+
+        $expense = $this->expenseService->restore($expense);
 
         return $this->successResponse(new ExpenseResource($expense), 'Expense restored successfully');
     }

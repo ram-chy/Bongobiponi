@@ -69,10 +69,11 @@ class AuthorController extends Controller
 
     public function restore(int $id): JsonResponse
     {
-        $author = $this->authorService->restore($id);
-
+        // CRIT-018 fix: Authorize BEFORE restoring
+        $author = Author::withTrashed()->findOrFail($id);
         $this->authorize('restore', $author);
+        $this->authorService->restore($id);
 
-        return $this->successResponse(new AuthorResource($author), 'Author restored successfully');
+        return $this->successResponse(new AuthorResource($author->fresh()->load(['creator', 'updater', 'books'])), 'Author restored successfully');
     }
 }

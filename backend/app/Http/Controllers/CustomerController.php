@@ -69,10 +69,11 @@ class CustomerController extends Controller
 
     public function restore(int $id): JsonResponse
     {
-        $customer = $this->customerService->restore($id);
-
+        // CRIT-018 fix: Authorize BEFORE restoring
+        $customer = Customer::withTrashed()->findOrFail($id);
         $this->authorize('restore', $customer);
+        $this->customerService->restore($id);
 
-        return $this->successResponse(new CustomerResource($customer), 'Customer restored successfully');
+        return $this->successResponse(new CustomerResource($customer->fresh()->load(['creator'])), 'Customer restored successfully');
     }
 }

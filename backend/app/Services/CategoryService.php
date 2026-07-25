@@ -59,12 +59,12 @@ class CategoryService
             $query->where('status', filter_var($filters['status'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        if (! empty($filters['parent_id'])) {
-            $query->where('parent_id', $filters['parent_id']);
-        }
-
+        // CRIT-009 fix: Check for 'null' string first, before !empty() check
+        // PHP's empty('null') returns false, so the 'null' string passes the !empty check
         if (isset($filters['parent_id']) && $filters['parent_id'] === 'null') {
             $query->whereNull('parent_id');
+        } elseif (! empty($filters['parent_id'])) {
+            $query->where('parent_id', $filters['parent_id']);
         }
 
         return $query;

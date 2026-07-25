@@ -12,11 +12,17 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
+  withCredentials: true, // Send cookies with cross-origin requests
 });
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().token;
+    // Try to get token from cookie first (HttpOnly cookie set by backend)
+    // If not found (e.g., SSR or cookie not set), fall back to store for initial load
+    const cookieToken = getAuthTokenFromCookie();
+    const storeToken = useAuthStore.getState().token;
+
+    const token = cookieToken || storeToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,7 +38,7 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const { status, data } = error.response;
+    const { status } = error.response;
 
     if (status === 401) {
       useAuthStore.getState().logout();
@@ -45,5 +51,11 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+function getAuthTokenFromCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|;\s*)auth_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 export default apiClient;

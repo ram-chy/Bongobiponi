@@ -69,9 +69,11 @@ class ExpenseCategoryController extends Controller
 
     public function restore(int $id): JsonResponse
     {
-        $category = $this->expenseCategoryService->restore($id);
+        $category = $this->expenseCategoryService->findTrashed($id);
 
         $this->authorize('restore', $category);
+
+        $category = $this->expenseCategoryService->restore($category);
 
         return $this->successResponse(new ExpenseCategoryResource($category), 'Expense category restored successfully');
     }

@@ -26,8 +26,11 @@ use App\Policies\PurchasePolicy;
 use App\Policies\QuotationPolicy;
 use App\Policies\SalesOrderPolicy;
 use App\Policies\UserPolicy;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -72,5 +75,9 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/sales_order'),
             database_path('migrations/expense'),
         ]);
+
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

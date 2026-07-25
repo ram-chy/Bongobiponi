@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\SendOtpMail;
 use App\Models\PasswordResetOtp;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -12,18 +13,21 @@ class PasswordResetService
 {
     public function sendOtp(string $email): void
     {
-        PasswordResetOtp::where('email', $email)
-            ->whereNull('completed_at')
-            ->where('expires_at', '>', now())
-            ->update(['used_at' => now()]);
+        DB::transaction(function () use ($email) {
+            PasswordResetOtp::where('email', $email)
+                ->whereNull('completed_at')
+                ->where('expires_at', '>', now())
+                ->update(['used_at' => now()]);
 
-        $otp = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            // 6-digit OTP for 900,000 combinations (vs 10,000 for 4-digit)
+            $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
 
-        PasswordResetOtp::create([
-            'email' => $email,
-            'otp' => $otp,
-            'expires_at' => now()->addMinutes(10),
-        ]);
+            PasswordResetOtp::create([
+                'email' => $email,
+                'otp' => $otp,
+                'expires_at' => now()->addMinutes(10),
+            ]);
+        });
 
         try {
             Mail::to($email)->send(new SendOtpMail($otp));
@@ -50,7 +54,7 @@ class PasswordResetService
             return null;
         }
 
-        if ($latestRecord->otp !== $otp) {
+        if (! hash_equals((string) $latestRecord->otp, (string) $otp)) {
             $latestRecord->increment('failed_attempts');
             return null;
         }
@@ -88,7 +92,10 @@ class PasswordResetService
             return false;
         }
 
-        $user->update(['password' => $password]);
+        $user->update([
+            'password' => $password,
+            'token_version' => ($user->token_version ?? 0) + 1,
+        ]);
 
         PasswordResetOtp::where('email', $email)
             ->whereNull('completed_at')

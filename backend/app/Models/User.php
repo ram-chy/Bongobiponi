@@ -12,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-#[Fillable(['first_name', 'last_name', 'email', 'mobile_no', 'password'])]
+#[Fillable(['first_name', 'last_name', 'email', 'mobile_no', 'password', 'role_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements JWTSubject
 {
@@ -34,9 +34,15 @@ class User extends Authenticatable implements JWTSubject
 
     public function getJWTCustomClaims(): array
     {
-        return [
+        $claims = [
             'email' => $this->email,
         ];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'token_version')) {
+            $claims['token_version'] = $this->token_version ?? 1;
+        }
+
+        return $claims;
     }
 
     public function role(): BelongsTo

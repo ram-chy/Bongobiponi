@@ -69,10 +69,11 @@ class PublisherController extends Controller
 
     public function restore(int $id): JsonResponse
     {
-        $publisher = $this->publisherService->restore($id);
-
+        // CRIT-018 fix: Authorize BEFORE restoring
+        $publisher = Publisher::withTrashed()->findOrFail($id);
         $this->authorize('restore', $publisher);
+        $this->publisherService->restore($id);
 
-        return $this->successResponse(new PublisherResource($publisher), 'Publisher restored successfully');
+        return $this->successResponse(new PublisherResource($publisher->fresh()->load(['creator', 'updater'])), 'Publisher restored successfully');
     }
 }

@@ -66,10 +66,11 @@ class BookController extends Controller
 
     public function restore(int $id): JsonResponse
     {
-        $book = $this->bookService->restore($id);
-
+        // CRIT-018 fix: Authorize BEFORE restoring
+        $book = Book::withTrashed()->findOrFail($id);
         $this->authorize('restore', $book);
+        $this->bookService->restore($id);
 
-        return $this->successResponse(new BookResource($book), 'Book restored successfully');
+        return $this->successResponse(new BookResource($book->fresh()->load(['creator', 'updater', 'publisher', 'category', 'authors'])), 'Book restored successfully');
     }
 }

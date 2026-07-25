@@ -33,7 +33,7 @@ Route::middleware('throttle:3,1')->group(function () {
     Route::post('reset-password', [PasswordResetController::class, 'resetPassword']);
 });
 
-Route::middleware('auth:api')->group(function () {
+Route::middleware(['auth:api', 'token.version', 'throttle:api'])->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);

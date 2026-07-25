@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role.manager' => \App\Http\Middleware\ManagerMiddleware::class,
             'role.regular' => \App\Http\Middleware\RegularUserMiddleware::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'token.version' => \App\Http\Middleware\ValidateTokenVersion::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -94,6 +94,8 @@ class DeliveryChallanService
             }
 
             if ($items !== null) {
+                $this->ensureNoDownstreamReferences($deliveryChallan);
+
                 $this->restoreSalesOrderQuantities($deliveryChallan);
 
                 $preparedItems = $this->prepareItems($items, $data['customer_id'] ?? $deliveryChallan->customer_id);
@@ -122,6 +124,17 @@ class DeliveryChallanService
                 'items.quotation',
             ]);
         });
+    }
+
+    private function ensureNoDownstreamReferences(DeliveryChallan $deliveryChallan): void
+    {
+        $hasDownstream = \App\Models\InvoiceItem::where('delivery_challan_id', $deliveryChallan->id)->exists();
+        if ($hasDownstream) {
+            throw new \InvalidArgumentException(
+                'Cannot modify delivery challan items. This delivery challan has associated Invoices. '
+                . 'Please delete the related Invoices first before modifying the delivery challan items.'
+            );
+        }
     }
 
     public function findTrashed(int $id): DeliveryChallan

@@ -67,9 +67,18 @@ export function OpeningStockPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    const parsedBookId = parseInt(bookId);
+    const parsedQuantity = parseInt(quantity);
+    const newErrors: Record<string, string> = {};
+    if (isNaN(parsedBookId)) newErrors.book_id = "Please select a book";
+    if (isNaN(parsedQuantity) || parsedQuantity <= 0) newErrors.quantity = "Quantity must be a positive number";
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
     mutation.mutate({
-      book_id: parseInt(bookId),
-      quantity: parseInt(quantity),
+      book_id: parsedBookId,
+      quantity: parsedQuantity,
       transaction_date: transactionDate,
       remarks: remarks || null,
     });

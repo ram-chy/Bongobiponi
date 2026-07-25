@@ -69,10 +69,11 @@ class SupplierController extends Controller
 
     public function restore(int $id): JsonResponse
     {
-        $supplier = $this->supplierService->restore($id);
-
+        // CRIT-018 fix: Authorize BEFORE restoring
+        $supplier = Supplier::withTrashed()->findOrFail($id);
         $this->authorize('restore', $supplier);
+        $this->supplierService->restore($id);
 
-        return $this->successResponse(new SupplierResource($supplier), 'Supplier restored successfully');
+        return $this->successResponse(new SupplierResource($supplier->fresh()->load(['creator', 'updater'])), 'Supplier restored successfully');
     }
 }

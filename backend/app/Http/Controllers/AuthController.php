@@ -60,9 +60,11 @@ class AuthController extends Controller
     {
         JWTHelper::invalidateToken();
 
+        $cookie = cookie()->forget(self::COOKIE_NAME);
+
         return response()->json([
             'message' => 'Successfully logged out',
-        ]);
+        ])->withCookie($cookie);
     }
 
     public function refresh(): JsonResponse
@@ -70,9 +72,24 @@ class AuthController extends Controller
         return $this->respondWithToken(JWTHelper::refreshToken());
     }
 
+    private const COOKIE_NAME = 'auth_token';
+    private const COOKIE_SECONDS = 3600; // 60 minutes
+
     private function respondWithToken(string $token): JsonResponse
     {
         $user = auth('api')->user();
+
+        $cookie = cookie(
+            self::COOKIE_NAME,
+            $token,
+            self::COOKIE_SECONDS / 60,
+            '/',
+            config('session.domain') ?: null,
+            config('app.env') === 'production',
+            true, // HttpOnly — not accessible via JavaScript
+            false,
+            'Lax'
+        );
 
         return response()->json([
             'data' => [
@@ -81,6 +98,6 @@ class AuthController extends Controller
                 'expires_in' => JWTHelper::getTTL(),
                 'user' => $user?->load('role'),
             ],
-        ]);
+        ])->withCookie($cookie);
     }
 }

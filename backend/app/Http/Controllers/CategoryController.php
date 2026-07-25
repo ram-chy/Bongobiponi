@@ -69,10 +69,11 @@ class CategoryController extends Controller
 
     public function restore(int $id): JsonResponse
     {
-        $category = $this->categoryService->restore($id);
-
+        // CRIT-018 fix: Authorize BEFORE restoring
+        $category = Category::withTrashed()->findOrFail($id);
         $this->authorize('restore', $category);
+        $this->categoryService->restore($id);
 
-        return $this->successResponse(new CategoryResource($category), 'Category restored successfully');
+        return $this->successResponse(new CategoryResource($category->fresh()->load(['creator', 'updater', 'parent', 'children'])), 'Category restored successfully');
     }
 }

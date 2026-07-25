@@ -78,6 +78,8 @@ class SalesOrderService
             }
 
             if ($items !== null) {
+                $this->ensureNoDownstreamReferences($salesOrder);
+
                 $preparedItems = $this->prepareItems($items, $data['customer_id'] ?? $salesOrder->customer_id);
                 $data['sales_order_source'] = $this->determineSource($preparedItems);
 
@@ -94,6 +96,17 @@ class SalesOrderService
 
             return $salesOrder->load(['customer', 'creator', 'items']);
         });
+    }
+
+    private function ensureNoDownstreamReferences(SalesOrder $salesOrder): void
+    {
+        $hasDownstream = \App\Models\DeliveryChallanItem::where('sales_order_id', $salesOrder->id)->exists();
+        if ($hasDownstream) {
+            throw new \InvalidArgumentException(
+                'Cannot modify sales order items. This sales order has associated Delivery Challans. '
+                . 'Please delete the related Delivery Challans first before modifying the sales order items.'
+            );
+        }
     }
 
     public function findTrashed(int $id): SalesOrder
