@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
 
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->api(prepend: [
+            \App\Http\Middleware\ReadAuthCookie::class,
+        ]);
         $middleware->alias([
             'role.admin' => \App\Http\Middleware\AdminMiddleware::class,
             'role.manager' => \App\Http\Middleware\ManagerMiddleware::class,
