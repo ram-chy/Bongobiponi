@@ -40,7 +40,7 @@ const bookSchema = z.object({
   purchase_price: z.string().min(1, "Purchase price is required"),
   selling_price: z.string().min(1, "Selling price is required"),
   minimum_stock: z.string().min(1, "Minimum stock is required"),
-  author_ids: z.array(z.number()).min(1, "At least one author is required"),
+  authors: z.array(z.number()).min(1, "At least one author is required"),
   cover_image: z.string().max(500).optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),
   status: z.boolean(),
@@ -96,7 +96,7 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
     resolver: zodResolver(bookSchema),
     defaultValues: {
       status: true,
-      author_ids: [],
+      authors: [],
       ...defaultValues,
     },
   });
@@ -106,7 +106,7 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
       initializedIdRef.current = id;
       reset({
         status: true,
-        author_ids: [],
+        authors: [],
         ...defaultValues,
       });
     }
@@ -114,7 +114,7 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
 
   const selectedPublisherId = watch("publisher_id");
   const selectedCategoryId = watch("category_id");
-  const selectedAuthorIds = watch("author_ids");
+  const selectedAuthorIds = watch("authors");
 
   const filteredAuthors = authorsData?.filter((author: Author) =>
     author.name.toLowerCase().includes(authorSearch.toLowerCase())
@@ -124,19 +124,19 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
     const current = selectedAuthorIds || [];
     if (current.includes(authorId)) {
       setValue(
-        "author_ids",
+        "authors",
         current.filter((id) => id !== authorId),
         { shouldValidate: true }
       );
     } else {
-      setValue("author_ids", [...current, authorId], {
+      setValue("authors", [...current, authorId], {
         shouldValidate: true,
       });
     }
   };
 
   const onSubmit = async (data: BookFormData) => {
-    const { author_ids, ...rest } = data;
+    const { authors, ...rest } = data;
     const payload = {
       ...rest,
       isbn: rest.isbn || null,
@@ -151,7 +151,7 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
       minimum_stock: Number(rest.minimum_stock),
       cover_image: rest.cover_image || null,
       description: rest.description || null,
-      authors: author_ids,
+      authors: authors,
     };
     try {
       await bookMutation.mutateAsync(
@@ -349,9 +349,9 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
                 onChange={(e) => setAuthorSearch(e.target.value)}
               />
             </div>
-            {errors.author_ids && (
+            {errors.authors && (
               <p className="text-sm text-destructive mb-3">
-                {errors.author_ids.message}
+                {errors.authors.message}
               </p>
             )}
             <div className="max-h-60 overflow-y-auto space-y-1 border rounded-lg p-2">

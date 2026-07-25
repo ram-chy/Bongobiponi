@@ -29,7 +29,7 @@ export function EditBookPage({ id }: { id: number }) {
             purchase_price: String(book.purchase_price),
             selling_price: String(book.selling_price),
             minimum_stock: String(book.minimum_stock),
-            author_ids: book.authors?.map((a) => a.id) ?? [],
+            authors: book.authors?.map((a) => a.id) ?? [],
             cover_image: book.cover_image ?? "",
             description: book.description ?? "",
             status: book.status,
