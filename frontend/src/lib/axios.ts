@@ -6,23 +6,37 @@ interface ApiErrorData {
   errors?: Record<string, string[]>;
 }
 
+const COOKIE_NAME = "auth_token";
+
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  withCredentials: true, // Send cookies with cross-origin requests
+  withCredentials: true,
 });
+
+function getTokenFromCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Try to get token from cookie first (HttpOnly cookie set by backend)
-    // If not found (e.g., SSR or cookie not set), fall back to store for initial load
-    const cookieToken = getAuthTokenFromCookie();
-    const storeToken = useAuthStore.getState().token;
+    // 1. Try in-memory store first (set after login)
+    let token = useAuthStore.getState().token;
 
-    const token = cookieToken || storeToken;
+    // 2. If not in memory (e.g., after page refresh), read from HttpOnly cookie
+    // and hydrate the store so subsequent requests use the in-memory token
+    if (!token) {
+      token = getTokenFromCookie();
+      if (token) {
+        useAuthStore.getState().setToken(token);
+      }
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -51,11 +65,5 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-function getAuthTokenFromCookie(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/(?:^|;\s*)auth_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
 
 export default apiClient;
