@@ -15,7 +15,7 @@ class PaymentFactory extends Factory
     public function definition(): array
     {
         return [
-            'payment_no' => 'GGPAY/' . fake()->unique()->numerify('###') . '/' . now()->format('y'),
+            'payment_no' => 'BBPAY/' . fake()->unique()->numerify('###') . '/' . now()->format('y'),
             'customer_id' => Customer::factory(),
             'payment_date' => fake()->date(),
             'payment_method' => fake()->randomElement(['Cash', 'Bank Transfer', 'UPI', 'Cheque']),

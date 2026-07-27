@@ -68,15 +68,7 @@ class PurchaseController extends Controller
     {
         $this->authorize('delete', $purchase);
 
-        if ($purchase->status === 'confirmed') {
-            $this->service->reverseStockForPurchase($purchase);
-        }
-
-        if ($purchase->receive_order_id) {
-            $this->service->reverseReceiveOrderProgress($purchase);
-        }
-
-        $purchase->delete();
+        $this->service->delete($purchase);
 
         return $this->successResponse(null, 'Purchase deleted successfully.');
     }
@@ -112,10 +104,6 @@ class PurchaseController extends Controller
         $this->authorize('restore', $purchase);
 
         $purchase = $this->service->restore($purchase);
-
-        if ($purchase->status === 'confirmed') {
-            $this->service->increaseStockForPurchase($purchase);
-        }
 
         return $this->successResponse(
             new PurchaseResource($purchase),

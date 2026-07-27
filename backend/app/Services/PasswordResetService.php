@@ -11,20 +11,29 @@ use Illuminate\Support\Str;
 
 class PasswordResetService
 {
+    private const MAX_OTP_PER_EMAIL_PER_HOUR = 3;
+
     public function sendOtp(string $email): void
     {
-        DB::transaction(function () use ($email) {
+        $recentOtps = PasswordResetOtp::where('email', $email)
+            ->where('created_at', '>', now()->subHour())
+            ->count();
+
+        if ($recentOtps >= self::MAX_OTP_PER_EMAIL_PER_HOUR) {
+            throw new \RuntimeException('Too many OTP requests. Please try again later.');
+        }
+
+        $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+
+        DB::transaction(function () use ($email, $otp) {
             PasswordResetOtp::where('email', $email)
                 ->whereNull('completed_at')
                 ->where('expires_at', '>', now())
                 ->update(['used_at' => now()]);
 
-            // 6-digit OTP for 900,000 combinations (vs 10,000 for 4-digit)
-            $otp = str_pad((string) random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
-
             PasswordResetOtp::create([
                 'email' => $email,
-                'otp' => $otp,
+                'otp' => hash('sha256', $otp),
                 'expires_at' => now()->addMinutes(10),
             ]);
         });
@@ -54,7 +63,7 @@ class PasswordResetService
             return null;
         }
 
-        if (! hash_equals((string) $latestRecord->otp, (string) $otp)) {
+        if (! hash_equals((string) $latestRecord->otp, hash('sha256', $otp))) {
             $latestRecord->increment('failed_attempts');
             return null;
         }

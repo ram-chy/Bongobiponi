@@ -28,8 +28,9 @@ apiClient.interceptors.request.use(
     // 1. Try in-memory store first (set after login)
     let token = useAuthStore.getState().token;
 
-    // 2. If not in memory (e.g., after page refresh), read from HttpOnly cookie
-    // and hydrate the store so subsequent requests use the in-memory token
+    // 2. If not in memory (e.g., after page refresh), read from cookie.
+    // The auth_token cookie is NOT HttpOnly so JS can read it for hydration.
+    // Hydrate the store so subsequent requests use the in-memory token.
     if (!token) {
       token = getTokenFromCookie();
       if (token) {

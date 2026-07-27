@@ -34,4 +34,9 @@ trait ApiResponse
 
         return response()->json($response, $code);
     }
+
+    protected function deleteErrorResponse(array $resultData, int $code = 422): JsonResponse
+    {
+        return response()->json($resultData, $code);
+    }
 }

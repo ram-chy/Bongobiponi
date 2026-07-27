@@ -85,7 +85,7 @@ class PurchaseService
         }
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($purchase) {
-            $purchase->update(['status' => 'confirmed']);
+            $purchase->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
 
             $this->increaseStockForPurchase($purchase);
 
@@ -109,7 +109,7 @@ class PurchaseService
                 $this->reverseStockForPurchase($purchase);
             }
 
-            $purchase->update(['status' => 'cancelled']);
+            $purchase->update(['status' => 'cancelled', 'updated_by' => auth()->id()]);
 
             if ($purchase->receive_order_id) {
                 $this->reverseReceiveOrderProgress($purchase);
@@ -124,15 +124,36 @@ class PurchaseService
         return Purchase::withoutGlobalScopes()->withTrashed()->findOrFail($id);
     }
 
+    public function delete(Purchase $purchase): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($purchase) {
+            if ($purchase->status === 'confirmed') {
+                $this->reverseStockForPurchase($purchase);
+            }
+
+            if ($purchase->receive_order_id) {
+                $this->reverseReceiveOrderProgress($purchase);
+            }
+
+            $purchase->delete();
+        });
+    }
+
     public function restore(Purchase $purchase): Purchase
     {
-        $purchase->restore();
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($purchase) {
+            $purchase->restore();
 
-        if ($purchase->receive_order_id && $purchase->status === 'confirmed') {
-            $this->updateReceiveOrderProgress($purchase);
-        }
+            if ($purchase->status === 'confirmed') {
+                $this->increaseStockForPurchase($purchase);
+            }
 
-        return $purchase->load(['supplier', 'creator', 'items.book']);
+            if ($purchase->receive_order_id && $purchase->status === 'confirmed') {
+                $this->updateReceiveOrderProgress($purchase);
+            }
+
+            return $purchase->load(['supplier', 'creator', 'items.book']);
+        });
     }
 
     public function reverseStockForPurchase(Purchase $purchase): void
@@ -169,10 +190,16 @@ class PurchaseService
         $receiveOrder = ReceiveOrder::with('items')->findOrFail($purchase->receive_order_id);
 
         foreach ($purchase->items as $purchaseItem) {
-            $roItem = $receiveOrder->items->firstWhere('book_id', $purchaseItem->book_id);
+            $roItem = $receiveOrder->items()
+                ->where('book_id', $purchaseItem->book_id)
+                ->lockForUpdate()
+                ->first();
 
             if ($roItem) {
-                $newReceivedQty = $roItem->received_quantity + $purchaseItem->received_quantity;
+                $newReceivedQty = min(
+                    $roItem->received_quantity + $purchaseItem->received_quantity,
+                    $roItem->ordered_quantity
+                );
                 $roItem->update(['received_quantity' => $newReceivedQty]);
             }
         }
@@ -228,6 +255,8 @@ class PurchaseService
         if (! $search) {
             return $query;
         }
+
+        $search = str_replace(['%', '_'], ['\\%', '\\_'], $search);
 
         return $query->where(function (Builder $q) use ($search) {
             $q->where('purchase_no', 'like', "%{$search}%")

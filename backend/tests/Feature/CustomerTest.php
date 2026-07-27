@@ -70,7 +70,7 @@ class CustomerTest extends TestCase
         $response = $this->postJson('/api/customers', $payload, $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertStringStartsWith('GGCU/', $response->json('data.customer_code'));
+        $this->assertStringStartsWith('BBCU/', $response->json('data.customer_code'));
     }
 
     public function test_created_by_is_set_automatically(): void

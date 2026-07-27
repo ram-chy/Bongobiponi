@@ -77,9 +77,7 @@ class InvoiceController extends Controller
     {
         $this->authorize('delete', $invoice);
 
-        $invoice->delete();
-
-        $this->activityLogService->logDelete('invoice', 'invoice', $invoice->id);
+        $this->invoiceService->delete($invoice);
 
         return $this->successResponse(null, 'Invoice deleted successfully');
     }

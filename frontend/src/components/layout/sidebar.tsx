@@ -11,7 +11,6 @@ import { navigation } from "@/constants/navigation";
 import type { NavItem as NavItemType } from "@/constants/navigation";
 import {
   ChevronDown,
-  ChevronLeft,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -55,9 +54,12 @@ function NavItem({
   onNav: () => void;
 }) {
   const pathname = usePathname();
-  const [expanded, setExpanded] = useState(
-    item.children?.some((child) => pathname.startsWith(child.href ?? "/")) ?? false
+  const isChildActive = useMemo(
+    () => item.children?.some((child) => pathname.startsWith(child.href ?? "/")) ?? false,
+    [item.children, pathname]
   );
+  const [manualExpanded, setManualExpanded] = useState(false);
+  const expanded = isChildActive || manualExpanded;
 
   const isActive = item.href
     ? pathname === item.href
@@ -68,7 +70,7 @@ function NavItem({
       <div>
         {!collapsed && (
           <button
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => setManualExpanded(!expanded)}
             className={cn(
               "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted",
               expanded && "text-foreground"

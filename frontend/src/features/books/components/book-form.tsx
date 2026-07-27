@@ -209,6 +209,13 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
                 onValueChange={(value: string | null) =>
                   setValue("publisher_id", value === "none" ? "" : value ?? "")
                 }
+                items={[
+                  { value: "none", label: "None" },
+                  ...(publishersData?.map((pub: Publisher) => ({
+                    value: String(pub.id),
+                    label: pub.name,
+                  })) ?? []),
+                ]}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Publisher" />
@@ -230,6 +237,13 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
                 onValueChange={(value: string | null) =>
                   setValue("category_id", value === "none" ? "" : value ?? "")
                 }
+                items={[
+                  { value: "none", label: "None" },
+                  ...(categoriesData?.map((cat: Category) => ({
+                    value: String(cat.id),
+                    label: cat.name,
+                  })) ?? []),
+                ]}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Category" />
@@ -305,6 +319,10 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
                 onValueChange={(value: string | null) =>
                   setValue("status", value === "active")
                 }
+                items={[
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
               >
                 <SelectTrigger>
                   <SelectValue />

@@ -288,7 +288,7 @@ class ConcurrencyTest extends TestCase
     public function test_dc_update_restores_and_reapplies_sales_order_quantities_atomically(): void
     {
         $salesOrderItem = $this->createSalesOrderItem($this->customer, $this->user, deliveredQuantity: 10, remainingQuantity: 10);
-        $serial = 'GGDC/CONC1/'.now()->format('y').'/'.uniqid();
+        $serial = 'BBDC/CONC1/'.now()->format('y').'/'.uniqid();
 
         $deliveryChallan = DeliveryChallan::create([
             'serial' => $serial,
@@ -383,7 +383,7 @@ class ConcurrencyTest extends TestCase
         float $deliveredQuantity,
     ): DeliveryChallanItem {
         $salesOrderItem = $this->createSalesOrderItem($customer, $user, deliveredQuantity: $deliveredQuantity, remainingQuantity: 100);
-        $serial = 'GGDC/CONCTEST/'.now()->format('y').'/'.uniqid();
+        $serial = 'BBDC/CONCTEST/'.now()->format('y').'/'.uniqid();
 
         $deliveryChallan = DeliveryChallan::create([
             'serial' => $serial,

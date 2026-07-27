@@ -16,7 +16,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <Navbar />
         <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="top-right" closeButton />
     </div>
   );
 }

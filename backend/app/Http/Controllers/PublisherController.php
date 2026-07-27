@@ -8,6 +8,7 @@ use App\Http\Resources\PublisherCollection;
 use App\Http\Resources\PublisherResource;
 use App\Models\Publisher;
 use App\Services\PublisherService;
+use App\Services\SafeDeleteEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,7 @@ class PublisherController extends Controller
 {
     public function __construct(
         private readonly PublisherService $publisherService,
+        private readonly SafeDeleteEngine $safeDeleteEngine,
     ) {}
 
     public function index(Request $request): PublisherCollection
@@ -62,9 +64,13 @@ class PublisherController extends Controller
     {
         $this->authorize('delete', $publisher);
 
-        $publisher->delete();
+        $result = $this->safeDeleteEngine->delete($publisher);
 
-        return $this->successResponse(null, 'Publisher deleted successfully');
+        if ($result->success) {
+            return $this->successResponse(null, $result->message);
+        }
+
+        return $this->deleteErrorResponse($result->toArray());
     }
 
     public function restore(int $id): JsonResponse

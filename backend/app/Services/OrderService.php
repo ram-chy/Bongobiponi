@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\QuotationItem;
 use App\Models\SalesOrderItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -263,6 +264,15 @@ class OrderService
     {
         foreach ($preparedItems as $item) {
             $order->items()->create($item);
+
+            if (! empty($item['quotation_item_id'])) {
+                $quotationItem = QuotationItem::findOrFail($item['quotation_item_id']);
+                $newRemaining = max(0, $quotationItem->remaining_quantity - $item['ordered_quantity']);
+                $quotationItem->update([
+                    'remaining_quantity' => $newRemaining,
+                    'is_converted' => $newRemaining <= 0,
+                ]);
+            }
         }
     }
 

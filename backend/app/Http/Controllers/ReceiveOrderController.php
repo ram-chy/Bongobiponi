@@ -68,7 +68,7 @@ class ReceiveOrderController extends Controller
     {
         $this->authorize('delete', $receiveOrder);
 
-        $receiveOrder->delete();
+        $this->service->delete($receiveOrder);
 
         return $this->successResponse(null, 'Receive order deleted successfully.');
     }

@@ -8,6 +8,7 @@ use App\Http\Resources\BookCollection;
 use App\Http\Resources\BookResource;
 use App\Models\Book;
 use App\Services\BookService;
+use App\Services\SafeDeleteEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,7 @@ class BookController extends Controller
 {
     public function __construct(
         private readonly BookService $bookService,
+        private readonly SafeDeleteEngine $safeDeleteEngine,
     ) {}
 
     public function index(Request $request): BookCollection
@@ -59,9 +61,13 @@ class BookController extends Controller
     {
         $this->authorize('delete', $book);
 
-        $book->delete();
+        $result = $this->safeDeleteEngine->delete($book);
 
-        return $this->successResponse(null, 'Book deleted successfully');
+        if ($result->success) {
+            return $this->successResponse(null, $result->message);
+        }
+
+        return $this->deleteErrorResponse($result->toArray());
     }
 
     public function restore(int $id): JsonResponse

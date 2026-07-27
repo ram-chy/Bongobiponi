@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\Scopes\CreatedByScope;
 use Database\Factories\SupplierFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -27,11 +27,6 @@ class Supplier extends Model
     /** @use HasFactory<SupplierFactory> */
     use HasFactory, SoftDeletes;
 
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new CreatedByScope);
-    }
-
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -40,5 +35,15 @@ class Supplier extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
+    public function receiveOrders(): HasMany
+    {
+        return $this->hasMany(ReceiveOrder::class);
     }
 }

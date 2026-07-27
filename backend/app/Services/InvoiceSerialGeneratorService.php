@@ -8,6 +8,6 @@ class InvoiceSerialGeneratorService extends SerialGeneratorService
 {
     public function __construct()
     {
-        parent::__construct('GGINV', Invoice::class, 'serial');
+        parent::__construct('BBINV', Invoice::class, 'serial');
     }
 }

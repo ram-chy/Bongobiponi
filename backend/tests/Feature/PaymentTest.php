@@ -85,7 +85,7 @@ class PaymentTest extends TestCase
         $response = $this->postJson('/api/payments', $this->validPayload(), $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertStringStartsWith('GGPAY/', $response->json('data.payment_no'));
+        $this->assertStringStartsWith('BBPAY/', $response->json('data.payment_no'));
         $this->assertStringEndsWith('/' . now()->format('y'), $response->json('data.payment_no'));
     }
 
@@ -143,7 +143,7 @@ class PaymentTest extends TestCase
     public function test_can_search_payments(): void
     {
         Payment::factory()->create([
-            'payment_no' => 'GGPAY/001/26',
+            'payment_no' => 'BBPAY/001/26',
             'customer_id' => $this->customer->id,
             'created_by' => $this->user->id,
         ]);
@@ -152,7 +152,7 @@ class PaymentTest extends TestCase
             'created_by' => $this->user->id,
         ]);
 
-        $response = $this->getJson('/api/payments?search=GGPAY/001', $this->authHeaders());
+        $response = $this->getJson('/api/payments?search=BBPAY/001', $this->authHeaders());
 
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));

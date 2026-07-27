@@ -94,7 +94,7 @@ class SalesOrderTest extends TestCase
         $response = $this->postJson('/api/sales-orders', $this->validPayload(), $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertStringStartsWith('GGSO/', $response->json('data.sales_order_serial'));
+        $this->assertStringStartsWith('BBSO/', $response->json('data.sales_order_serial'));
         $this->assertStringEndsWith('/' . now()->format('y'), $response->json('data.sales_order_serial'));
     }
 
@@ -157,7 +157,7 @@ class SalesOrderTest extends TestCase
     public function test_can_search_sales_orders(): void
     {
         SalesOrder::factory()->create([
-            'sales_order_serial' => 'GGSO/999/26',
+            'sales_order_serial' => 'BBSO/999/26',
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
         ]);
@@ -335,7 +335,7 @@ class SalesOrderTest extends TestCase
     public function test_serial_resets_yearly(): void
     {
         SalesOrder::factory()->create([
-            'sales_order_serial' => 'GGSO/005/' . now()->format('y'),
+            'sales_order_serial' => 'BBSO/005/' . now()->format('y'),
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
         ]);
@@ -343,7 +343,7 @@ class SalesOrderTest extends TestCase
         $response = $this->postJson('/api/sales-orders', $this->validPayload(), $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertEquals('GGSO/006/' . now()->format('y'), $response->json('data.sales_order_serial'));
+        $this->assertEquals('BBSO/006/' . now()->format('y'), $response->json('data.sales_order_serial'));
     }
 
     public function test_can_download_pdf(): void

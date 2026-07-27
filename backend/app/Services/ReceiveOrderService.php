@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Purchase;
 use App\Models\ReceiveOrder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -77,13 +78,22 @@ class ReceiveOrderService
         return $receiveOrder->load(['supplier', 'creator', 'items.book']);
     }
 
+    public function delete(ReceiveOrder $receiveOrder): void
+    {
+        if (Purchase::where('receive_order_id', $receiveOrder->id)->where('status', 'confirmed')->exists()) {
+            throw new \RuntimeException('Cannot delete receive order with confirmed purchases. Please cancel or delete the related purchases first.');
+        }
+
+        $receiveOrder->delete();
+    }
+
     public function approve(ReceiveOrder $receiveOrder): ReceiveOrder
     {
         if ($receiveOrder->status !== 'draft') {
             throw new \RuntimeException('Only draft receive orders can be approved.');
         }
 
-        $receiveOrder->update(['status' => 'approved']);
+        $receiveOrder->update(['status' => 'approved', 'updated_by' => auth()->id()]);
 
         return $receiveOrder->load(['supplier', 'creator', 'items.book']);
     }
@@ -96,7 +106,7 @@ class ReceiveOrderService
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($receiveOrder, $receivedItems) {
             foreach ($receivedItems as $receivedItem) {
-                $item = $receiveOrder->items()->findOrFail($receivedItem['id']);
+                $item = $receiveOrder->items()->where('id', $receivedItem['id'])->lockForUpdate()->firstOrFail();
 
                 $newReceivedQty = $item->received_quantity + (int) $receivedItem['received_quantity'];
 
@@ -120,7 +130,7 @@ class ReceiveOrderService
             }
 
             $newStatus = $allFullyReceived ? 'completed' : 'partially_received';
-            $receiveOrder->update(['status' => $newStatus]);
+            $receiveOrder->update(['status' => $newStatus, 'updated_by' => auth()->id()]);
 
             return $receiveOrder->load(['supplier', 'creator', 'items.book']);
         });
@@ -133,7 +143,7 @@ class ReceiveOrderService
             throw new \RuntimeException('Only draft or approved receive orders can be cancelled.');
         }
 
-        $receiveOrder->update(['status' => 'cancelled']);
+        $receiveOrder->update(['status' => 'cancelled', 'updated_by' => auth()->id()]);
 
         return $receiveOrder->load(['supplier', 'creator', 'items.book']);
     }
@@ -143,6 +153,8 @@ class ReceiveOrderService
         if (! $search) {
             return $query;
         }
+
+        $search = str_replace(['%', '_'], ['\\%', '\\_'], $search);
 
         return $query->where(function (Builder $q) use ($search) {
             $q->where('order_no', 'like', "%{$search}%")

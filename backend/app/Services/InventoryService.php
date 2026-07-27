@@ -25,6 +25,10 @@ class InventoryService
         ?string $remarks = null,
         ?int $createdBy = null,
     ): InventoryTransaction {
+        if ($quantity <= 0) {
+            throw new \InvalidArgumentException('Quantity must be positive.');
+        }
+
         return DB::transaction(function () use ($bookId, $quantity, $type, $referenceType, $referenceId, $transactionDate, $remarks, $createdBy) {
             $stock = $this->repository->getOrCreateStock($bookId, lock: true);
 
@@ -63,6 +67,10 @@ class InventoryService
         ?string $remarks = null,
         ?int $createdBy = null,
     ): InventoryTransaction {
+        if ($quantity <= 0) {
+            throw new \InvalidArgumentException('Quantity must be positive.');
+        }
+
         return DB::transaction(function () use ($bookId, $quantity, $type, $referenceType, $referenceId, $transactionDate, $remarks, $createdBy) {
             $stock = $this->repository->getOrCreateStock($bookId, lock: true);
 
@@ -137,6 +145,15 @@ class InventoryService
     public function reverseTransaction(InventoryTransaction $transaction): InventoryTransaction
     {
         return DB::transaction(function () use ($transaction) {
+            $existingReversal = InventoryTransaction::where('reference_type', $transaction->reference_type)
+                ->where('reference_id', $transaction->reference_id)
+                ->where('remarks', 'like', 'Reversal of%')
+                ->first();
+
+            if ($existingReversal) {
+                return $existingReversal;
+            }
+
             $stock = $this->repository->getOrCreateStock($transaction->book_id, lock: true);
 
             if ($transaction->quantity_in > 0) {

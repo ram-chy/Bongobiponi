@@ -85,7 +85,7 @@ class OrderTest extends TestCase
         $response = $this->postJson('/api/orders', $this->validManualPayload(), $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertStringStartsWith('GG/', $response->json('data.order_serial'));
+        $this->assertStringStartsWith('BB/', $response->json('data.order_serial'));
         $this->assertStringEndsWith('/' . now()->format('y'), $response->json('data.order_serial'));
     }
 
@@ -141,7 +141,7 @@ class OrderTest extends TestCase
     public function test_can_search_orders(): void
     {
         Order::factory()->create([
-            'order_serial' => 'GG/999/26',
+            'order_serial' => 'BB/999/26',
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
         ]);
@@ -407,7 +407,7 @@ class OrderTest extends TestCase
     public function test_serial_resets_yearly(): void
     {
         Order::factory()->create([
-            'order_serial' => 'GG/005/' . now()->format('y'),
+            'order_serial' => 'BB/005/' . now()->format('y'),
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
         ]);
@@ -415,7 +415,7 @@ class OrderTest extends TestCase
         $response = $this->postJson('/api/orders', $this->validManualPayload(), $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertEquals('GG/006/' . now()->format('y'), $response->json('data.order_serial'));
+        $this->assertEquals('BB/006/' . now()->format('y'), $response->json('data.order_serial'));
     }
 
     public function test_can_download_pdf(): void

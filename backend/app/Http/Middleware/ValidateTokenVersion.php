@@ -19,7 +19,11 @@ class ValidateTokenVersion
             }
 
             // Skip validation if token_version column doesn't exist yet (pre-migration)
-            if (! Schema::hasColumn('users', 'token_version')) {
+            static $hasColumn = null;
+            if ($hasColumn === null) {
+                $hasColumn = Schema::hasColumn('users', 'token_version');
+            }
+            if (! $hasColumn) {
                 return $next($request);
             }
 
@@ -35,7 +39,7 @@ class ValidateTokenVersion
                 return response()->json(['message' => 'Token has been invalidated. Please log in again.'], 401);
             }
         } catch (\Exception) {
-            // If token parsing fails, let the auth:api middleware handle it
+            return response()->json(['message' => 'Invalid token.'], 401);
         }
 
         return $next($request);

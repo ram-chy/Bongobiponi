@@ -20,7 +20,7 @@ class SalesOrderFactory extends Factory
 
         return [
             'document_reference_uuid' => (string) Str::uuid(),
-            'sales_order_serial' => 'GGSO/' . str_pad((string) $counter, 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
+            'sales_order_serial' => 'BBSO/' . str_pad((string) $counter, 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
             'customer_id' => Customer::factory(),
             'sales_order_source' => 'single',
             'sales_order_date' => now()->format('Y-m-d'),

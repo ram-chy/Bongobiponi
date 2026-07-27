@@ -18,7 +18,7 @@ class OrderFactory extends Factory
         $counter++;
 
         return [
-            'order_serial' => 'GG/' . str_pad((string) $counter, 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
+            'order_serial' => 'BB/' . str_pad((string) $counter, 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
             'customer_id' => Customer::factory(),
             'order_source' => 'manual',
             'order_date' => now()->format('Y-m-d'),

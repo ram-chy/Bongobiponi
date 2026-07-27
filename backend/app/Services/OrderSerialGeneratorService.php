@@ -8,6 +8,6 @@ class OrderSerialGeneratorService extends SerialGeneratorService
 {
     public function __construct()
     {
-        parent::__construct('GG', Order::class, 'order_serial');
+        parent::__construct('BB', Order::class, 'order_serial');
     }
 }

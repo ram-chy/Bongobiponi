@@ -8,6 +8,6 @@ class SalesOrderSerialGeneratorService extends SerialGeneratorService
 {
     public function __construct()
     {
-        parent::__construct('GGSO', SalesOrder::class, 'sales_order_serial');
+        parent::__construct('BBSO', SalesOrder::class, 'sales_order_serial');
     }
 }

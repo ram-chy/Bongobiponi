@@ -29,7 +29,7 @@ export function EditPurchasePage({ id }: { id: number }) {
     <div>
       <PageBreadcrumb
         items={[
-          { label: "Sales" },
+          { label: "Purchases" },
           { label: "Purchases", href: "/purchases" },
           { label: purchase.purchase_no },
           { label: "Edit" },

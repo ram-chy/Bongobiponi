@@ -145,7 +145,7 @@ class InvoiceQuantityRestoreTest extends TestCase
             'remaining_sales_quantity' => 100,
         ]);
 
-        $serial = 'GGDC/TQRTEST/'.now()->format('y').'/'.uniqid();
+        $serial = 'BBDC/TQRTEST/'.now()->format('y').'/'.uniqid();
         $deliveryChallan = DeliveryChallan::create([
             'serial' => $serial,
             'delivery_date' => now()->toDateString(),

@@ -66,7 +66,7 @@ class ExpenseTest extends TestCase
         $response = $this->postJson('/api/expenses', $this->validPayload(), $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertStringStartsWith('GGEXP/', $response->json('data.expense_no'));
+        $this->assertStringStartsWith('BBEXP/', $response->json('data.expense_no'));
         $this->assertStringEndsWith('/' . now()->format('y'), $response->json('data.expense_no'));
     }
 
@@ -90,7 +90,7 @@ class ExpenseTest extends TestCase
     public function test_can_search_expenses(): void
     {
         Expense::factory()->create([
-            'expense_no' => 'GGEXP/001/26',
+            'expense_no' => 'BBEXP/001/26',
             'vendor_name' => 'Acme Corp',
             'category_id' => $this->category->id,
             'created_by' => $this->user->id,
@@ -100,7 +100,7 @@ class ExpenseTest extends TestCase
             'created_by' => $this->user->id,
         ]);
 
-        $response = $this->getJson('/api/expenses?search=GGEXP/001', $this->authHeaders());
+        $response = $this->getJson('/api/expenses?search=BBEXP/001', $this->authHeaders());
 
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));

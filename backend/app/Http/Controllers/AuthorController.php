@@ -8,6 +8,7 @@ use App\Http\Resources\AuthorCollection;
 use App\Http\Resources\AuthorResource;
 use App\Models\Author;
 use App\Services\AuthorService;
+use App\Services\SafeDeleteEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,7 @@ class AuthorController extends Controller
 {
     public function __construct(
         private readonly AuthorService $authorService,
+        private readonly SafeDeleteEngine $safeDeleteEngine,
     ) {}
 
     public function index(Request $request): AuthorCollection
@@ -62,9 +64,13 @@ class AuthorController extends Controller
     {
         $this->authorize('delete', $author);
 
-        $author->delete();
+        $result = $this->safeDeleteEngine->delete($author);
 
-        return $this->successResponse(null, 'Author deleted successfully');
+        if ($result->success) {
+            return $this->successResponse(null, $result->message);
+        }
+
+        return $this->deleteErrorResponse($result->toArray());
     }
 
     public function restore(int $id): JsonResponse

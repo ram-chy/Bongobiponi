@@ -8,6 +8,6 @@ class PaymentSerialGeneratorService extends SerialGeneratorService
 {
     public function __construct()
     {
-        parent::__construct('GGPAY', Payment::class, 'payment_no');
+        parent::__construct('BBPAY', Payment::class, 'payment_no');
     }
 }

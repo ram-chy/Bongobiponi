@@ -284,7 +284,7 @@ class SourceDocumentOwnershipTest extends TestCase
     public function test_regular_user_cannot_view_another_users_delivery_challan(): void
     {
         $deliveryChallan = DeliveryChallan::create([
-            'serial' => 'GGDC/998/' . now()->format('y'),
+            'serial' => 'BBDC/998/' . now()->format('y'),
             'delivery_date' => now()->toDateString(),
             'customer_id' => $this->otherCustomer->id,
             'delivery_address' => 'Address',
@@ -371,7 +371,7 @@ class SourceDocumentOwnershipTest extends TestCase
     public function test_regular_user_cannot_restore_another_users_delivery_challan(): void
     {
         $deliveryChallan = DeliveryChallan::create([
-            'serial' => 'GGDC/997/' . now()->format('y'),
+            'serial' => 'BBDC/997/' . now()->format('y'),
             'delivery_date' => now()->toDateString(),
             'customer_id' => $this->otherCustomer->id,
             'delivery_address' => 'Address',
@@ -597,7 +597,7 @@ class SourceDocumentOwnershipTest extends TestCase
     {
         $salesOrderItem = $this->createSalesOrderItem($customer, $user);
         $deliveryChallan = DeliveryChallan::create([
-            'serial' => 'GGDC/999/'.now()->format('y'),
+            'serial' => 'BBDC/999/'.now()->format('y'),
             'delivery_date' => now()->toDateString(),
             'customer_id' => $customer->id,
             'delivery_address' => 'Other delivery address',

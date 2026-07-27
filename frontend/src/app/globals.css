@@ -129,3 +129,10 @@
     @apply font-sans;
   }
 }
+
+[data-sonner-toast][data-styled=true] [data-close-button] {
+  left: auto !important;
+  right: 8px !important;
+  top: 8px !important;
+  transform: none !important;
+}

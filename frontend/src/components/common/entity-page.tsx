@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SortingState } from "@tanstack/react-table";
@@ -60,7 +60,7 @@ export function EntityPage<T extends { id: number }>({
   const resolveEditRoute = (id: number) =>
     config.editRoute.replace(":id", String(id));
 
-  const { data, isLoading } = useEntityList<T>(config, listParams);
+  const { data, isLoading, isError, error } = useEntityList<T>(config, listParams);
   const deleteMutation = useEntityDelete(config.endpoint, config.endpoint);
 
   return (
@@ -94,8 +94,15 @@ export function EntityPage<T extends { id: number }>({
         </div>
       </div>
 
+      {isError && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          <p className="font-medium">Failed to load data</p>
+          <p className="mt-1">{error instanceof Error ? error.message : "An unexpected error occurred."}</p>
+        </div>
+      )}
+
       <DataTable
-        columns={config.columns.map((col) => {
+        columns={useMemo(() => config.columns.map((col) => {
           const tableCol: ColumnDef<T> = {
             id: col.id,
             header: col.header,
@@ -107,7 +114,7 @@ export function EntityPage<T extends { id: number }>({
               (col.cell as (row: Record<string, unknown>) => React.ReactNode)(info.row.original);
           }
           return tableCol;
-        })}
+        }), [config.columns])}
         data={data?.data ?? []}
         sorting={sorting}
         onSortingChange={(updater) => {

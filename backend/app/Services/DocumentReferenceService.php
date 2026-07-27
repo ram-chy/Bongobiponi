@@ -37,9 +37,15 @@ class DocumentReferenceService
 
     public function getChildren(string $uuid): iterable
     {
-        return DocumentReference::where('parent_document_type', function ($q) use ($uuid) {
-            // This is a simplified approach
-        })->get();
+        $parent = DocumentReference::where('uuid', $uuid)->first();
+
+        if (! $parent) {
+            return collect();
+        }
+
+        return DocumentReference::where('parent_document_id', $parent->id)
+            ->where('parent_document_type', $parent->document_type)
+            ->get();
     }
 
     public function getParentChain(string $uuid): array

@@ -29,12 +29,12 @@ const emailSchema = z.object({
 });
 
 const otpSchema = z.object({
-  otp: z.string().regex(/^\d{4}$/, "OTP must be 4 digits"),
+  otp: z.string().regex(/^\d{6}$/, "OTP must be 6 digits"),
 });
 
 const passwordSchema = z
   .object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     password_confirmation: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.password_confirmation, {
@@ -154,7 +154,7 @@ export function ForgotPasswordForm() {
         </CardTitle>
         <CardDescription>
           {step === "email" && "Enter your email to receive a reset code."}
-          {step === "otp" && `Enter the 4-digit code sent to ${email}.`}
+          {step === "otp" && `Enter the 6-digit code sent to ${email}.`}
           {step === "password" && "Choose a new password for your account."}
         </CardDescription>
       </CardHeader>
@@ -192,8 +192,8 @@ export function ForgotPasswordForm() {
                 id="otp"
                 type="text"
                 inputMode="numeric"
-                placeholder="0000"
-                maxLength={4}
+                placeholder="000000"
+                maxLength={6}
                 className="text-center text-2xl tracking-[8px]"
                 {...otpForm.register("otp")}
               />
@@ -236,7 +236,7 @@ export function ForgotPasswordForm() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Min. 6 characters"
+                  placeholder="Min. 8 characters"
                   className="pr-9"
                   {...passwordForm.register("password")}
                 />

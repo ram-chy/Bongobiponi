@@ -15,7 +15,7 @@ class InvoiceFactory extends Factory
     public function definition(): array
     {
         return [
-            'serial' => 'GGINV/' . fake()->unique()->numerify('###') . '/' . now()->format('y'),
+            'serial' => 'BBINV/' . fake()->unique()->numerify('###') . '/' . now()->format('y'),
             'invoice_date' => fake()->date(),
             'due_date' => fake()->dateTimeBetween('+1 week', '+1 month')->format('Y-m-d'),
             'customer_id' => Customer::factory(),

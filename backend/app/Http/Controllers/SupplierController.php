@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateSupplierRequest;
 use App\Http\Resources\SupplierCollection;
 use App\Http\Resources\SupplierResource;
 use App\Models\Supplier;
+use App\Services\SafeDeleteEngine;
 use App\Services\SupplierService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class SupplierController extends Controller
 {
     public function __construct(
         private readonly SupplierService $supplierService,
+        private readonly SafeDeleteEngine $safeDeleteEngine,
     ) {}
 
     public function index(Request $request): SupplierCollection
@@ -62,9 +64,13 @@ class SupplierController extends Controller
     {
         $this->authorize('delete', $supplier);
 
-        $supplier->delete();
+        $result = $this->safeDeleteEngine->delete($supplier);
 
-        return $this->successResponse(null, 'Supplier deleted successfully');
+        if ($result->success) {
+            return $this->successResponse(null, $result->message);
+        }
+
+        return $this->deleteErrorResponse($result->toArray());
     }
 
     public function restore(int $id): JsonResponse

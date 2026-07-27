@@ -15,7 +15,7 @@ class ExpenseFactory extends Factory
     public function definition(): array
     {
         return [
-            'expense_no' => 'GGEXP/' . fake()->unique()->numerify('###') . '/' . now()->format('y'),
+            'expense_no' => 'BBEXP/' . fake()->unique()->numerify('###') . '/' . now()->format('y'),
             'expense_date' => fake()->date(),
             'category_id' => ExpenseCategory::factory(),
             'payment_method' => fake()->randomElement(['Cash', 'Bank Transfer', 'UPI', 'Cheque']),

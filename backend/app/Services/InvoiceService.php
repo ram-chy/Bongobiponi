@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DeliveryChallanItem;
 use App\Models\Invoice;
+use App\Models\PaymentItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -104,6 +105,28 @@ class InvoiceService
 
                 $invoice->items()->delete();
                 $this->syncItems($invoice, $preparedItems);
+
+                $paidAmount = (float) PaymentItem::where('invoice_id', $invoice->id)
+                    ->whereHas('payment', function ($q) {
+                        $q->where('payment_status', 'confirmed');
+                    })
+                    ->sum('paid_amount');
+
+                $grandTotal = (float) $invoice->fresh()->grand_total;
+
+                if ($paidAmount >= $grandTotal && $grandTotal > 0) {
+                    $paymentStatus = 'paid';
+                } elseif ($paidAmount > 0) {
+                    $paymentStatus = 'partial';
+                } else {
+                    $paymentStatus = 'unpaid';
+                }
+
+                $invoice->update([
+                    'paid_amount' => $paidAmount,
+                    'payment_status' => $paymentStatus,
+                    'updated_by' => auth()->id(),
+                ]);
             }
 
             return $invoice->load([
@@ -122,6 +145,17 @@ class InvoiceService
     public function findTrashed(int $id): Invoice
     {
         return Invoice::withoutGlobalScopes()->withTrashed()->findOrFail($id);
+    }
+
+    public function delete(Invoice $invoice): void
+    {
+        DB::transaction(function () use ($invoice) {
+            $this->restoreInvoiceItemQuantities($invoice);
+
+            $this->activityLogService->logDelete('invoice', 'invoice', $invoice->id);
+
+            $invoice->delete();
+        });
     }
 
     public function restore(Invoice $invoice): Invoice

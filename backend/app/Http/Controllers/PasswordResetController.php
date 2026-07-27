@@ -16,7 +16,13 @@ class PasswordResetController extends Controller
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $this->passwordResetService->sendOtp($request->email);
+        try {
+            $this->passwordResetService->sendOtp($request->email);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 429);
+        }
 
         return response()->json([
             'message' => 'OTP sent to your email',

@@ -12,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-#[Fillable(['first_name', 'last_name', 'email', 'mobile_no', 'password', 'role_id'])]
+#[Fillable(['first_name', 'last_name', 'email', 'mobile_no', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements JWTSubject
 {
@@ -38,7 +38,11 @@ class User extends Authenticatable implements JWTSubject
             'email' => $this->email,
         ];
 
-        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'token_version')) {
+        static $hasColumn = null;
+        if ($hasColumn === null) {
+            $hasColumn = \Illuminate\Support\Facades\Schema::hasColumn('users', 'token_version');
+        }
+        if ($hasColumn) {
             $claims['token_version'] = $this->token_version ?? 1;
         }
 

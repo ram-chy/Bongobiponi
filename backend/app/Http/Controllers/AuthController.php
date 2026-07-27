@@ -58,13 +58,19 @@ class AuthController extends Controller
 
     public function logout(): JsonResponse
     {
-        JWTHelper::invalidateToken();
+        $invalidated = JWTHelper::invalidateToken();
 
         $cookie = cookie()->forget(self::COOKIE_NAME);
 
-        return response()->json([
+        $response = response()->json([
             'message' => 'Successfully logged out',
         ])->withCookie($cookie);
+
+        if (! $invalidated) {
+            report(new \Exception('Failed to blacklist JWT during logout'));
+        }
+
+        return $response;
     }
 
     public function refresh(): JsonResponse
@@ -73,6 +79,7 @@ class AuthController extends Controller
     }
 
     private const COOKIE_NAME = 'auth_token';
+
     private const COOKIE_SECONDS = 3600; // 60 minutes
 
     private function respondWithToken(string $token): JsonResponse
@@ -86,7 +93,7 @@ class AuthController extends Controller
             '/',
             config('session.domain') ?: null,
             config('app.env') === 'production',
-            true, // HttpOnly — not accessible via JavaScript
+            false, // Must be false so frontend JS can read it for hydration after page refresh
             false,
             'Lax'
         );

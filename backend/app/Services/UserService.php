@@ -24,6 +24,10 @@ class UserService
 
     public function updateRole(User $user, int $roleId): User
     {
+        if ($user->id === auth()->id()) {
+            throw new \RuntimeException('You cannot change your own role.');
+        }
+
         return $this->userRepository->updateRole($user, $roleId);
     }
 }

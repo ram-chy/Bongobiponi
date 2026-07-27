@@ -142,6 +142,17 @@ class DeliveryChallanService
         return DeliveryChallan::withoutGlobalScopes()->withTrashed()->findOrFail($id);
     }
 
+    public function delete(DeliveryChallan $deliveryChallan): void
+    {
+        DB::transaction(function () use ($deliveryChallan) {
+            $this->restoreSalesOrderQuantities($deliveryChallan);
+
+            $this->activityLogService->logDelete('delivery_challan', 'delivery_challan', $deliveryChallan->id);
+
+            $deliveryChallan->delete();
+        });
+    }
+
     public function restore(DeliveryChallan $deliveryChallan): DeliveryChallan
     {
         $deliveryChallan->restore();

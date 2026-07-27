@@ -9,7 +9,7 @@ export function CreatePurchasePage() {
     <div>
       <PageBreadcrumb
         items={[
-          { label: "Sales" },
+          { label: "Purchases" },
           { label: "Purchases", href: "/purchases" },
           { label: "Create" },
         ]}

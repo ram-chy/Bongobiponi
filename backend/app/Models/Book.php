@@ -76,4 +76,14 @@ class Book extends Model
     {
         return $this->hasMany(InventoryTransaction::class);
     }
+
+    public function purchaseItems(): HasMany
+    {
+        return $this->hasMany(PurchaseItem::class);
+    }
+
+    public function receiveOrderItems(): HasMany
+    {
+        return $this->hasMany(ReceiveOrderItem::class);
+    }
 }

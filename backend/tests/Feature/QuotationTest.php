@@ -81,7 +81,7 @@ class QuotationTest extends TestCase
         $response = $this->postJson('/api/quotations', $this->validPayload(), $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertStringStartsWith('GGQ/', $response->json('data.quotation_serial'));
+        $this->assertStringStartsWith('BBQ/', $response->json('data.quotation_serial'));
         $this->assertStringEndsWith('/' . now()->format('y'), $response->json('data.quotation_serial'));
     }
 
@@ -137,7 +137,7 @@ class QuotationTest extends TestCase
     public function test_can_search_quotations(): void
     {
         Quotation::factory()->create([
-            'quotation_serial' => 'GGQ/999/26',
+            'quotation_serial' => 'BBQ/999/26',
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
         ]);
@@ -255,7 +255,7 @@ class QuotationTest extends TestCase
     {
         // Create quotation in current year
         Quotation::factory()->create([
-            'quotation_serial' => 'GGQ/005/' . now()->format('y'),
+            'quotation_serial' => 'BBQ/005/' . now()->format('y'),
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
         ]);
@@ -263,6 +263,6 @@ class QuotationTest extends TestCase
         $response = $this->postJson('/api/quotations', $this->validPayload(), $this->authHeaders());
 
         $response->assertCreated();
-        $this->assertEquals('GGQ/006/' . now()->format('y'), $response->json('data.quotation_serial'));
+        $this->assertEquals('BBQ/006/' . now()->format('y'), $response->json('data.quotation_serial'));
     }
 }

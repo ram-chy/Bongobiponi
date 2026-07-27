@@ -74,11 +74,13 @@ Route::middleware(['auth:api', 'token.version', 'throttle:api'])->group(function
     Route::post('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel']);
 
     Route::get('inventory', [InventoryController::class, 'index']);
-    Route::get('inventory/{bookId}', [InventoryController::class, 'show']);
     Route::get('inventory/ledger/{bookId}', [InventoryController::class, 'ledger']);
-    Route::post('inventory/opening', [InventoryController::class, 'opening']);
-    Route::post('inventory/adjustment', [InventoryController::class, 'adjustment']);
-    Route::post('inventory/damage', [InventoryController::class, 'damage']);
+    Route::get('inventory/{bookId}', [InventoryController::class, 'show']);
+    Route::middleware('role.manager')->group(function () {
+        Route::post('inventory/opening', [InventoryController::class, 'opening']);
+        Route::post('inventory/adjustment', [InventoryController::class, 'adjustment']);
+        Route::post('inventory/damage', [InventoryController::class, 'damage']);
+    });
 
     Route::apiResource('quotations', QuotationController::class);
     Route::post('quotations/{id}/restore', [QuotationController::class, 'restore']);

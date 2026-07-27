@@ -60,7 +60,7 @@ class JWTHelper
             Auth::guard('api')->logout();
 
             return true;
-        } catch (JWTException) {
+        } catch (\Exception) {
             return false;
         }
     }

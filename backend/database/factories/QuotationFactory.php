@@ -18,7 +18,7 @@ class QuotationFactory extends Factory
         $counter++;
 
         return [
-            'quotation_serial' => 'GGQ/' . str_pad((string) $counter, 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
+            'quotation_serial' => 'BBQ/' . str_pad((string) $counter, 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
             'customer_id' => Customer::factory(),
             'quotation_date' => now()->format('Y-m-d'),
             'valid_until' => now()->addDays(15)->format('Y-m-d'),

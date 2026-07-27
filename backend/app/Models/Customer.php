@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -63,13 +64,16 @@ class Customer extends Model
 
     public static function generateCustomerCode(): string
     {
-        $last = static::withTrashed()
-            ->where('customer_code', 'like', 'GGCU/%')
-            ->orderByRaw('CAST(SUBSTRING(customer_code, 6) AS UNSIGNED) DESC')
-            ->first();
+        return DB::transaction(function () {
+            $last = static::withTrashed()
+                ->where('customer_code', 'like', 'BBCU/%')
+                ->orderByRaw('CAST(SUBSTRING(customer_code, 6) AS UNSIGNED) DESC')
+                ->lockForUpdate()
+                ->first();
 
-        $lastNumber = $last ? (int) substr($last->customer_code, 5) : 0;
+            $lastNumber = $last ? (int) substr($last->customer_code, 5) : 0;
 
-        return 'GGCU/' . Str::padLeft((string) ($lastNumber + 1), 3, '0');
+            return 'BBCU/' . Str::padLeft((string) ($lastNumber + 1), 3, '0');
+        });
     }
 }

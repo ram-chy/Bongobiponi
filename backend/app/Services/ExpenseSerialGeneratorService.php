@@ -8,6 +8,6 @@ class ExpenseSerialGeneratorService extends SerialGeneratorService
 {
     public function __construct()
     {
-        parent::__construct('GGEXP', Expense::class, 'expense_no');
+        parent::__construct('BBEXP', Expense::class, 'expense_no');
     }
 }

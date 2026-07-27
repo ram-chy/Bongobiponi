@@ -36,6 +36,7 @@ export function Navbar() {
         size="icon"
         className="lg:hidden"
         onClick={() => setMobileOpen(true)}
+        aria-label="Toggle menu"
       >
         <Menu className="size-5" />
       </Button>
@@ -50,7 +51,7 @@ export function Navbar() {
 
       <div className="flex-1" />
 
-      <Button variant="ghost" size="icon" className="relative">
+      <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
         <Bell className="size-5" />
         <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />
       </Button>
@@ -59,22 +60,13 @@ export function Navbar() {
         variant="ghost"
         size="icon"
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        aria-label="Toggle theme"
       >
         {theme === "dark" ? (
           <Sun className="size-5" />
         ) : (
           <Moon className="size-5" />
         )}
-      </Button>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => logoutMutation.mutate()}
-        disabled={logoutMutation.isPending}
-        title="Logout"
-      >
-        <LogOut className="size-5" />
       </Button>
 
       <DropdownMenu>

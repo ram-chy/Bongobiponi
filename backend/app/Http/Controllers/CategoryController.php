@@ -8,6 +8,7 @@ use App\Http\Resources\CategoryCollection;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use App\Services\CategoryService;
+use App\Services\SafeDeleteEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,7 @@ class CategoryController extends Controller
 {
     public function __construct(
         private readonly CategoryService $categoryService,
+        private readonly SafeDeleteEngine $safeDeleteEngine,
     ) {}
 
     public function index(Request $request): CategoryCollection
@@ -62,9 +64,13 @@ class CategoryController extends Controller
     {
         $this->authorize('delete', $category);
 
-        $category->delete();
+        $result = $this->safeDeleteEngine->delete($category);
 
-        return $this->successResponse(null, 'Category deleted successfully');
+        if ($result->success) {
+            return $this->successResponse(null, $result->message);
+        }
+
+        return $this->deleteErrorResponse($result->toArray());
     }
 
     public function restore(int $id): JsonResponse

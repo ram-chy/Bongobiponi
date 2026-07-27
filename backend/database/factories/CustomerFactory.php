@@ -15,7 +15,7 @@ class CustomerFactory extends Factory
     {
         return [
             'created_by' => User::factory(),
-            'customer_code' => 'GGCU/' . fake()->unique()->numerify('###'),
+            'customer_code' => 'BBCU/' . fake()->unique()->numerify('###'),
             'name' => fake()->name(),
             'company_name' => fake()->company(),
             'email' => fake()->unique()->companyEmail(),

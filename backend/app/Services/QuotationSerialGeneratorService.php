@@ -8,6 +8,6 @@ class QuotationSerialGeneratorService extends SerialGeneratorService
 {
     public function __construct()
     {
-        parent::__construct('GGQ', Quotation::class, 'quotation_serial');
+        parent::__construct('BBQ', Quotation::class, 'quotation_serial');
     }
 }

@@ -76,9 +76,7 @@ class DeliveryChallanController extends Controller
     {
         $this->authorize('delete', $deliveryChallan);
 
-        $deliveryChallan->delete();
-
-        $this->activityLogService->logDelete('delivery_challan', 'delivery_challan', $deliveryChallan->id);
+        $this->deliveryChallanService->delete($deliveryChallan);
 
         return $this->successResponse(null, 'Delivery Challan deleted successfully');
     }

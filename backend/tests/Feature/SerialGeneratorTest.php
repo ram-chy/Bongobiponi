@@ -24,7 +24,7 @@ class SerialGeneratorTest extends TestCase
         $generator = new QuotationSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertMatchesRegularExpression('/^GGQ\/\d{3}\/\d{2}$/', $serial);
+        $this->assertMatchesRegularExpression('/^BBQ\/\d{3}\/\d{2}$/', $serial);
     }
 
     public function test_order_generator_follows_shared_format(): void
@@ -32,7 +32,7 @@ class SerialGeneratorTest extends TestCase
         $generator = new OrderSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertMatchesRegularExpression('/^GG\/\d{3}\/\d{2}$/', $serial);
+        $this->assertMatchesRegularExpression('/^BB\/\d{3}\/\d{2}$/', $serial);
     }
 
     public function test_sales_order_generator_follows_shared_format(): void
@@ -40,7 +40,7 @@ class SerialGeneratorTest extends TestCase
         $generator = new SalesOrderSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertMatchesRegularExpression('/^GGSO\/\d{3}\/\d{2}$/', $serial);
+        $this->assertMatchesRegularExpression('/^BBSO\/\d{3}\/\d{2}$/', $serial);
     }
 
     public function test_delivery_challan_generator_follows_shared_format(): void
@@ -48,7 +48,7 @@ class SerialGeneratorTest extends TestCase
         $generator = new DeliveryChallanSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertMatchesRegularExpression('/^GGDC\/\d{3}\/\d{2}$/', $serial);
+        $this->assertMatchesRegularExpression('/^BBDC\/\d{3}\/\d{2}$/', $serial);
     }
 
     public function test_invoice_generator_follows_shared_format(): void
@@ -56,7 +56,7 @@ class SerialGeneratorTest extends TestCase
         $generator = new InvoiceSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertMatchesRegularExpression('/^GGINV\/\d{3}\/\d{2}$/', $serial);
+        $this->assertMatchesRegularExpression('/^BBINV\/\d{3}\/\d{2}$/', $serial);
     }
 
     public function test_payment_generator_follows_shared_format(): void
@@ -64,7 +64,7 @@ class SerialGeneratorTest extends TestCase
         $generator = new PaymentSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertMatchesRegularExpression('/^GGPAY\/\d{3}\/\d{2}$/', $serial);
+        $this->assertMatchesRegularExpression('/^BBPAY\/\d{3}\/\d{2}$/', $serial);
     }
 
     public function test_expense_generator_follows_shared_format(): void
@@ -72,43 +72,43 @@ class SerialGeneratorTest extends TestCase
         $generator = new ExpenseSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertMatchesRegularExpression('/^GGEXP\/\d{3}\/\d{2}$/', $serial);
+        $this->assertMatchesRegularExpression('/^BBEXP\/\d{3}\/\d{2}$/', $serial);
     }
 
     public function test_generator_increments_after_existing_serial(): void
     {
         Quotation::factory()->create([
-            'quotation_serial' => 'GGQ/007/' . now()->format('y'),
+            'quotation_serial' => 'BBQ/007/' . now()->format('y'),
         ]);
 
         $generator = new QuotationSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertEquals('GGQ/008/' . now()->format('y'), $serial);
+        $this->assertEquals('BBQ/008/' . now()->format('y'), $serial);
     }
 
     public function test_generator_ignores_other_prefix_serials(): void
     {
         Order::factory()->create([
-            'order_serial' => 'GG/050/' . now()->format('y'),
+            'order_serial' => 'BB/050/' . now()->format('y'),
         ]);
 
         $generator = new OrderSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertEquals('GG/051/' . now()->format('y'), $serial);
+        $this->assertEquals('BB/051/' . now()->format('y'), $serial);
     }
 
     public function test_generator_includes_soft_deleted_records_in_count(): void
     {
         $quotation = Quotation::factory()->create([
-            'quotation_serial' => 'GGQ/003/' . now()->format('y'),
+            'quotation_serial' => 'BBQ/003/' . now()->format('y'),
         ]);
         $quotation->delete();
 
         $generator = new QuotationSerialGeneratorService();
         $serial = $generator->generate();
 
-        $this->assertEquals('GGQ/004/' . now()->format('y'), $serial);
+        $this->assertEquals('BBQ/004/' . now()->format('y'), $serial);
     }
 }
