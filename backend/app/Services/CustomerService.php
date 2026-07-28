@@ -50,7 +50,6 @@ class CustomerService
         return $query->where(function (Builder $q) use ($search) {
             $q->where('customer_code', 'like', "%{$search}%")
               ->orWhere('name', 'like', "%{$search}%")
-              ->orWhere('company_name', 'like', "%{$search}%")
               ->orWhere('phone', 'like', "%{$search}%")
               ->orWhere('email', 'like', "%{$search}%");
         });
@@ -58,10 +57,6 @@ class CustomerService
 
     private function applyFilters(Builder $query, array $filters): Builder
     {
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
         if (! empty($filters['city'])) {
             $query->where('city', $filters['city']);
         }
@@ -78,7 +73,7 @@ class CustomerService
         $sort = $sort ?: 'created_at';
         $direction = $direction === 'desc' ? 'desc' : 'asc';
 
-        $allowedSorts = ['name', 'customer_code', 'created_at', 'city', 'state', 'status'];
+        $allowedSorts = ['name', 'customer_code', 'created_at', 'city', 'state'];
 
         if (in_array($sort, $allowedSorts)) {
             $query->orderBy($sort, $direction);

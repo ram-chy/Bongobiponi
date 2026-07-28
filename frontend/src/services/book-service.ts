@@ -14,4 +14,13 @@ export const bookService = {
     apiClient.put(`/books/${id}`, data),
 
   delete: (id: number) => apiClient.delete(`/books/${id}`),
+
+  uploadCover: (file: File) => {
+    const formData = new FormData();
+    formData.append("cover_image", file);
+    return apiClient.post<{ message: string; data: { url: string; path: string } }>(
+      "/books/upload-cover",
+      formData,
+    );
+  },
 };

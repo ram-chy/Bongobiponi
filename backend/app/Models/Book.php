@@ -30,7 +30,6 @@ class Book extends Model
         'minimum_stock',
         'description',
         'cover_image',
-        'status',
     ];
 
     protected function casts(): array

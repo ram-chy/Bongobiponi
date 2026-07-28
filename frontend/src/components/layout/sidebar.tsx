@@ -14,7 +14,7 @@ import {
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 function filterNavByRole(
   items: NavItemType[],
@@ -59,7 +59,16 @@ function NavItem({
     [item.children, pathname]
   );
   const [manualExpanded, setManualExpanded] = useState(false);
-  const expanded = isChildActive || manualExpanded;
+  const [userCollapsed, setUserCollapsed] = useState(false);
+  const prevIsChildActiveRef = useRef(isChildActive);
+  const expanded = isChildActive ? !userCollapsed : manualExpanded;
+
+  useEffect(() => {
+    if (isChildActive && !prevIsChildActiveRef.current) {
+      setUserCollapsed(false);
+    }
+    prevIsChildActiveRef.current = isChildActive;
+  }, [isChildActive]);
 
   const isActive = item.href
     ? pathname === item.href
@@ -70,7 +79,13 @@ function NavItem({
       <div>
         {!collapsed && (
           <button
-            onClick={() => setManualExpanded(!expanded)}
+            onClick={() => {
+              if (isChildActive) {
+                setUserCollapsed(!userCollapsed);
+              } else {
+                setManualExpanded(!manualExpanded);
+              }
+            }}
             className={cn(
               "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted",
               expanded && "text-foreground"
@@ -86,7 +101,7 @@ function NavItem({
             />
           </button>
         )}
-        {(expanded || collapsed) && (
+        {expanded && (
           <div className={cn("space-y-1", !collapsed && "ml-4 mt-1")}>
             {item.children.map((child) => (
               <NavItem

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Book;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class BookService
 {
@@ -28,11 +29,41 @@ class BookService
 
         $book = Book::create($data);
 
+        if (! empty($data['cover_image']) && str_contains($data['cover_image'], 'covers/temp/')) {
+            $this->finalizeCoverImage($book);
+        }
+
         if (! empty($authors)) {
             $book->authors()->sync($authors);
         }
 
         return $book->load(['publisher', 'category', 'authors']);
+    }
+
+    private function finalizeCoverImage(Book $book): void
+    {
+        $tempPath = $book->cover_image;
+        if (!$tempPath) return;
+
+        $titleWords = array_filter(explode(' ', mb_strtolower($book->title)));
+        $prefix = implode('_', array_slice($titleWords, 0, 2));
+        $timestamp = now()->format('Ymd_His');
+        $ext = pathinfo($tempPath, PATHINFO_EXTENSION);
+        $newName = "{$book->id}_{$prefix}_{$timestamp}.{$ext}";
+        $newPath = "covers/{$newName}";
+
+        $oldFullPath = Storage::disk('public')->path($tempPath);
+        $newFullPath = Storage::disk('public')->path($newPath);
+
+        $dir = dirname($newFullPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        if (file_exists($oldFullPath)) {
+            rename($oldFullPath, $newFullPath);
+            $book->update(['cover_image' => "covers/{$newName}"]);
+        }
     }
 
     public function update(Book $book, array $data): Book
@@ -84,10 +115,6 @@ class BookService
 
     private function applyFilters(Builder $query, array $filters): Builder
     {
-        if (isset($filters['status']) && $filters['status'] !== '') {
-            $query->where('status', filter_var($filters['status'], FILTER_VALIDATE_BOOLEAN));
-        }
-
         if (! empty($filters['publisher_id'])) {
             $query->where('publisher_id', $filters['publisher_id']);
         }
@@ -114,7 +141,7 @@ class BookService
         $sort = $sort ?: 'created_at';
         $direction = $direction === 'desc' ? 'desc' : 'asc';
 
-        $allowedSorts = ['title', 'isbn', 'purchase_price', 'selling_price', 'created_at', 'status'];
+        $allowedSorts = ['title', 'isbn', 'purchase_price', 'selling_price', 'created_at'];
 
         if (in_array($sort, $allowedSorts)) {
             $query->orderBy($sort, $direction);

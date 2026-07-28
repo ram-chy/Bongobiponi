@@ -28,7 +28,6 @@ export interface Book {
   minimum_stock: number;
   description: string | null;
   cover_image: string | null;
-  status: boolean;
   publisher?: BookPublisher | null;
   category?: BookCategory | null;
   authors?: BookAuthor[];

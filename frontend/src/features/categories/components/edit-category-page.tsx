@@ -32,12 +32,8 @@ export function EditCategoryPage({ id }: { id: number }) {
         defaultValues={
           category
             ? {
-                parent_id: category.parent_id
-                  ? String(category.parent_id)
-                  : "",
                 name: category.name,
                 description: category.description ?? "",
-                status: category.status,
               }
             : undefined
         }

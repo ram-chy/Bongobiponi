@@ -1,7 +1,7 @@
 "use client";
 
 import { EntityPage } from "@/components/common/entity-page";
-import { Badge } from "@/components/ui/badge";
+import { BookOpen } from "lucide-react";
 import type { Book } from "@/types/book";
 import type { EntityConfig, ColumnDef } from "@/types/entity";
 
@@ -24,6 +24,31 @@ const columns: ColumnDef<Book>[] = [
     cell: (row) => row.publisher?.name ?? "—",
   },
   {
+    id: "cover_image",
+    header: "Cover",
+    accessorKey: "cover_image",
+    cell: (row) => {
+      if (!row.cover_image) {
+        return (
+          <div className="size-10 rounded bg-muted flex items-center justify-center">
+            <BookOpen className="size-4 text-muted-foreground" />
+          </div>
+        );
+      }
+      const storageUrl =
+        (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/api$/, "") +
+        "/storage/";
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={storageUrl + row.cover_image}
+          alt={row.title}
+          className="size-10 object-cover rounded shrink-0"
+        />
+      );
+    },
+  },
+  {
     id: "category",
     header: "Category",
     accessorKey: "category_id",
@@ -34,22 +59,6 @@ const columns: ColumnDef<Book>[] = [
     header: "Price",
     accessorKey: "selling_price",
     cell: (row) => `₹${Number(row.selling_price).toLocaleString()}`,
-  },
-  {
-    id: "status",
-    header: "Status",
-    accessorKey: "status",
-    sortable: true,
-    cell: (row) => (
-      <Badge
-        variant={row.status ? "default" : "destructive"}
-        className={
-          row.status ? "bg-emerald-600 hover:bg-emerald-600/80" : undefined
-        }
-      >
-        {row.status ? "ACTIVE" : "INACTIVE"}
-      </Badge>
-    ),
   },
 ];
 

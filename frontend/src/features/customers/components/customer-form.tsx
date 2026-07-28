@@ -9,13 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Card,
   CardContent,
   CardHeader,
@@ -27,21 +20,15 @@ import { mapValidationErrors } from "@/lib/api-errors";
 
 const customerSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  company_name: z.string().max(255).optional().or(z.literal("")),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().min(1, "Phone is required").max(20),
   alternate_phone: z.string().max(20).optional().or(z.literal("")),
-  gst_number: z.string().max(20).optional().or(z.literal("")),
-  pan_number: z.string().max(20).optional().or(z.literal("")),
   billing_address: z.string().min(1, "Billing address is required"),
   shipping_address: z.string().optional().or(z.literal("")),
   city: z.string().min(1, "City is required").max(255),
   state: z.string().min(1, "State is required").max(255),
   country: z.string().min(1, "Country is required").max(255),
   postal_code: z.string().min(1, "Postal code is required").max(20),
-  credit_limit: z.string().optional().or(z.literal("")),
-  opening_balance: z.string().optional().or(z.literal("")),
-  status: z.enum(["active", "inactive"]),
   notes: z.string().optional().or(z.literal("")),
 });
 
@@ -63,12 +50,10 @@ export function CustomerForm({
     register,
     handleSubmit,
     setError,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
-      status: "active",
       ...defaultValues,
     },
   });
@@ -108,10 +93,6 @@ export function CustomerForm({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company_name">Company Name</Label>
-              <Input id="company_name" {...register("company_name")} />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && (
@@ -128,43 +109,6 @@ export function CustomerForm({
             <div className="space-y-2">
               <Label htmlFor="alternate_phone">Alternate Phone</Label>
               <Input id="alternate_phone" {...register("alternate_phone")} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                defaultValue={defaultValues?.status ?? "active"}
-                onValueChange={(value) =>
-                  setValue("status", value as "active" | "inactive")
-                }
-                items={[
-                  { value: "active", label: "Active" },
-                  { value: "inactive", label: "Inactive" },
-                ]}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Tax Information</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="gst_number">GST Number</Label>
-              <Input id="gst_number" {...register("gst_number")} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pan_number">PAN Number</Label>
-              <Input id="pan_number" {...register("pan_number")} />
             </div>
           </CardContent>
         </Card>
@@ -216,32 +160,6 @@ export function CustomerForm({
                   {errors.postal_code.message}
                 </p>
               )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Financial Details</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="credit_limit">Credit Limit</Label>
-              <Input
-                id="credit_limit"
-                type="number"
-                step="0.01"
-                {...register("credit_limit")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="opening_balance">Opening Balance</Label>
-              <Input
-                id="opening_balance"
-                type="number"
-                step="0.01"
-                {...register("opening_balance")}
-              />
             </div>
           </CardContent>
         </Card>

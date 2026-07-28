@@ -17,21 +17,15 @@ use Illuminate\Support\Str;
     'created_by',
     'customer_code',
     'name',
-    'company_name',
     'email',
     'phone',
     'alternate_phone',
-    'gst_number',
-    'pan_number',
     'billing_address',
     'shipping_address',
     'city',
     'state',
     'country',
     'postal_code',
-    'credit_limit',
-    'opening_balance',
-    'status',
     'notes',
 ])]
 class Customer extends Model
@@ -42,14 +36,6 @@ class Customer extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new CreatedByScope);
-    }
-
-    protected function casts(): array
-    {
-        return [
-            'credit_limit' => 'decimal:2',
-            'opening_balance' => 'decimal:2',
-        ];
     }
 
     public function creator(): BelongsTo

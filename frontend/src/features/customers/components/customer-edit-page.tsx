@@ -33,21 +33,15 @@ export function CustomerEditPage({ id }: { id: number }) {
           customer
             ? {
                 name: customer.name,
-                company_name: customer.company_name ?? "",
                 email: customer.email ?? "",
                 phone: customer.phone,
                 alternate_phone: customer.alternate_phone ?? "",
-                gst_number: customer.gst_number ?? "",
-                pan_number: customer.pan_number ?? "",
                 billing_address: customer.billing_address,
                 shipping_address: customer.shipping_address ?? "",
                 city: customer.city,
                 state: customer.state,
                 country: customer.country,
                 postal_code: customer.postal_code,
-                credit_limit: customer.credit_limit,
-                opening_balance: customer.opening_balance,
-                status: customer.status,
                 notes: customer.notes ?? "",
               }
             : undefined

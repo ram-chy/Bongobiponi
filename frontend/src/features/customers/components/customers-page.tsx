@@ -1,7 +1,6 @@
 "use client";
 
 import { EntityPage } from "@/components/common/entity-page";
-import { Badge } from "@/components/ui/badge";
 import type { Customer } from "@/types/customer";
 import type { EntityConfig, ColumnDef } from "@/types/entity";
 
@@ -13,14 +12,8 @@ const columns: ColumnDef<Customer>[] = [
     sortable: true,
   },
   {
-    id: "company_name",
-    header: "Company Name",
-    accessorKey: "company_name",
-    sortable: true,
-  },
-  {
     id: "name",
-    header: "Contact Person",
+    header: "Name",
     accessorKey: "name",
     sortable: true,
   },
@@ -39,20 +32,6 @@ const columns: ColumnDef<Customer>[] = [
     header: "City",
     accessorKey: "city",
     sortable: true,
-  },
-  {
-    id: "status",
-    header: "Status",
-    accessorKey: "status",
-    sortable: true,
-    cell: (row) => (
-      <Badge
-        variant={row.status === "active" ? "default" : "destructive"}
-        className={row.status === "active" ? "bg-emerald-600 hover:bg-emerald-600/80" : undefined}
-      >
-        {row.status.toUpperCase()}
-      </Badge>
-    ),
   },
 ];
 

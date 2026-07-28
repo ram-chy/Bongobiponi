@@ -245,7 +245,6 @@ class BookSeeder extends Seeder
             $bookData['publisher_id'] = $publishers->get($publisherName)?->id;
             $bookData['category_id'] = $categories->get($categoryName)?->id;
             $bookData['created_by'] = $user?->id;
-            $bookData['status'] = true;
 
             $book = Book::firstOrCreate(
                 ['isbn' => $bookData['isbn']],

@@ -24,7 +24,6 @@ class BookResource extends JsonResource
             'minimum_stock' => $this->minimum_stock,
             'description' => $this->description,
             'cover_image' => $this->cover_image,
-            'status' => $this->status,
             'publisher' => $this->whenLoaded('publisher', fn () => [
                 'id' => $this->publisher->id,
                 'name' => $this->publisher->name,

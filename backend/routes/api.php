@@ -27,7 +27,7 @@ Route::middleware('throttle:5,1')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('login');
 });
 
-Route::middleware('throttle:3,1')->group(function () {
+Route::middleware('throttle:10,1')->group(function () {
     Route::post('forgot-password', [PasswordResetController::class, 'forgotPassword']);
     Route::post('verify-otp', [PasswordResetController::class, 'verifyOtp']);
     Route::post('reset-password', [PasswordResetController::class, 'resetPassword']);
@@ -61,6 +61,7 @@ Route::middleware(['auth:api', 'token.version', 'throttle:api'])->group(function
 
     Route::apiResource('books', BookController::class);
     Route::post('books/{id}/restore', [BookController::class, 'restore']);
+    Route::post('books/upload-cover', [BookController::class, 'uploadCover']);
 
     Route::apiResource('receive-orders', ReceiveOrderController::class);
     Route::post('receive-orders/{id}/restore', [ReceiveOrderController::class, 'restore']);

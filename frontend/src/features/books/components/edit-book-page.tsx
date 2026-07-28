@@ -32,7 +32,6 @@ export function EditBookPage({ id }: { id: number }) {
             authors: book.authors?.map((a) => a.id) ?? [],
             cover_image: book.cover_image ?? "",
             description: book.description ?? "",
-            status: book.status,
           }
         : undefined,
     [book]

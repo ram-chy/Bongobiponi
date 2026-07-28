@@ -55,12 +55,7 @@ class CategoryService
 
     private function applyFilters(Builder $query, array $filters): Builder
     {
-        if (isset($filters['status']) && $filters['status'] !== '') {
-            $query->where('status', filter_var($filters['status'], FILTER_VALIDATE_BOOLEAN));
-        }
-
         // CRIT-009 fix: Check for 'null' string first, before !empty() check
-        // PHP's empty('null') returns false, so the 'null' string passes the !empty check
         if (isset($filters['parent_id']) && $filters['parent_id'] === 'null') {
             $query->whereNull('parent_id');
         } elseif (! empty($filters['parent_id'])) {
@@ -72,10 +67,10 @@ class CategoryService
 
     private function applySorting(Builder $query, ?string $sort, ?string $direction): Builder
     {
-        $sort = $sort ?: 'created_at';
+        $sort = $sort ?: 'name';
         $direction = $direction === 'desc' ? 'desc' : 'asc';
 
-        $allowedSorts = ['name', 'created_at', 'status'];
+        $allowedSorts = ['name', 'created_at'];
 
         if (in_array($sort, $allowedSorts)) {
             $query->orderBy($sort, $direction);

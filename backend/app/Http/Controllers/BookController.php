@@ -11,6 +11,7 @@ use App\Services\BookService;
 use App\Services\SafeDeleteEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class BookController extends Controller
 {
@@ -24,7 +25,7 @@ class BookController extends Controller
         $this->authorize('viewAny', Book::class);
 
         $books = $this->bookService->list($request->only([
-            'search', 'status', 'publisher_id', 'category_id', 'author_id', 'language', 'sort', 'direction', 'per_page',
+            'search', 'publisher_id', 'category_id', 'author_id', 'language', 'sort', 'direction', 'per_page',
         ]));
 
         return new BookCollection($books);
@@ -78,5 +79,61 @@ class BookController extends Controller
         $this->bookService->restore($id);
 
         return $this->successResponse(new BookResource($book->fresh()->load(['creator', 'updater', 'publisher', 'category', 'authors'])), 'Book restored successfully');
+    }
+
+    public function uploadCover(Request $request): JsonResponse
+    {
+        $this->authorize('create', Book::class);
+
+        $request->validate([
+            'cover_image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
+        ]);
+
+        $file = $request->file('cover_image');
+        $tempName = 'temp_' . time() . '_' . uniqid() . '.' . $file->extension();
+        $path = $file->storeAs('covers/temp', $tempName, 'public');
+
+        $fullPath = Storage::disk('public')->path($path);
+        $this->compressImage($fullPath);
+
+        return response()->json([
+            'message' => 'Image uploaded successfully',
+            'data' => [
+                'url' => Storage::disk('public')->url($path),
+                'path' => $path,
+            ],
+        ]);
+    }
+
+    private function compressImage(string $path, int $maxSize = 500 * 1024): void
+    {
+        $info = getimagesize($path);
+        if (!$info) return;
+
+        $mime = $info['mime'];
+        $quality = 85;
+
+        do {
+            $image = match ($mime) {
+                'image/jpeg' => imagecreatefromjpeg($path),
+                'image/png' => imagecreatefrompng($path),
+                'image/webp' => imagecreatefromwebp($path),
+                default => null,
+            };
+
+            if (!$image) break;
+
+            match ($mime) {
+                'image/jpeg' => imagejpeg($image, $path, $quality),
+                'image/png' => imagepng($image, $path, max(1, (int) round(9 - ($quality / 10)))),
+                'image/webp' => imagewebp($image, $path, $quality),
+                default => null,
+            };
+
+            imagedestroy($image);
+
+            $size = filesize($path);
+            $quality -= 5;
+        } while ($size > $maxSize && $quality > 10);
     }
 }

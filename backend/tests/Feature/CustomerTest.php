@@ -129,23 +129,6 @@ class CustomerTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
-    public function test_can_filter_by_status(): void
-    {
-        Customer::factory()->create([
-            'status' => 'active',
-            'created_by' => $this->user->id,
-        ]);
-        Customer::factory()->create([
-            'status' => 'inactive',
-            'created_by' => $this->user->id,
-        ]);
-
-        $response = $this->getJson('/api/customers?status=active', $this->authHeaders());
-
-        $response->assertOk();
-        $this->assertCount(1, $response->json('data'));
-    }
-
     public function test_can_view_customer(): void
     {
         $customer = Customer::factory()->create(['created_by' => $this->user->id]);

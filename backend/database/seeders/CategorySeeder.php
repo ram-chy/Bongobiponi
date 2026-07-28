@@ -50,7 +50,6 @@ class CategorySeeder extends Seeder
                 ['name' => $cat['name']],
                 array_merge($cat, [
                     'created_by' => $user?->id,
-                    'status' => true,
                 ])
             );
             $parentIdMap[$cat['name']] = $record->id;
@@ -79,7 +78,6 @@ class CategorySeeder extends Seeder
                     'created_by' => $user?->id,
                     'parent_id' => $parentIdMap[$cat['parent']],
                     'description' => $cat['description'],
-                    'status' => true,
                 ]
             );
         }

@@ -46,5 +46,8 @@ class DatabaseSeeder extends Seeder
         $this->call(AuthorSeeder::class);
         $this->call(SupplierSeeder::class);
         $this->call(BookSeeder::class);
+
+        // Inventory test data (100+ records per table)
+        $this->call(InventoryTestSeeder::class);
     }
 }

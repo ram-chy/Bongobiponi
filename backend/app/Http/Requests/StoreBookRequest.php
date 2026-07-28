@@ -29,7 +29,6 @@ class StoreBookRequest extends FormRequest
             'cover_image' => 'nullable|string|max:500',
             'authors' => 'nullable|array',
             'authors.*' => 'exists:authors,id',
-            'status' => 'nullable|boolean',
         ];
     }
 }

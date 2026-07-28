@@ -4,9 +4,9 @@ import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { PageBreadcrumb } from "@/components/breadcrumb/page-breadcrumb";
 import { PageHeader } from "@/components/page-header/page-header";
-import { Badge } from "@/components/ui/badge";
 import { useBook } from "@/features/books/hooks/use-book";
 import { cn } from "@/lib/utils";
 
@@ -95,15 +95,6 @@ export function ViewBookPage({ id }: { id: number }) {
               <div>
                 <p className="text-sm text-muted-foreground">Language</p>
                 <p className="font-medium">{book.language || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge
-                  variant={book.status ? "default" : "destructive"}
-                  className={book.status ? "bg-emerald-600 hover:bg-emerald-600/80" : undefined}
-                >
-                  {book.status ? "ACTIVE" : "INACTIVE"}
-                </Badge>
               </div>
             </div>
           </CardContent>

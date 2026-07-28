@@ -16,7 +16,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'parent_id',
     'name',
     'description',
-    'status',
 ])]
 class Category extends Model
 {

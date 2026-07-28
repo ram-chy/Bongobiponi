@@ -20,6 +20,7 @@ import {
 import { Loader2, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getApiMessage } from "@/lib/api-errors";
 import { useForgotPassword } from "@/features/auth/hooks/use-forgot-password";
 import { useVerifyOtp } from "@/features/auth/hooks/use-verify-otp";
 import { useResetPassword } from "@/features/auth/hooks/use-reset-password";
@@ -75,8 +76,8 @@ export function ForgotPasswordForm() {
       setEmail(data.email);
       setStep("otp");
       toast.success("OTP sent to your email");
-    } catch {
-      toast.error("Failed to send OTP. Please check your email.");
+    } catch (error) {
+      toast.error(getApiMessage(error));
     }
   };
 
@@ -92,8 +93,8 @@ export function ForgotPasswordForm() {
       } else {
         toast.error("Invalid or expired OTP");
       }
-    } catch {
-      toast.error("Invalid or expired OTP");
+    } catch (error) {
+      toast.error(getApiMessage(error));
     }
   };
 
@@ -115,8 +116,8 @@ export function ForgotPasswordForm() {
       sessionStorage.removeItem("reset_token");
       setStep("done");
       toast.success("Password reset successfully");
-    } catch {
-      toast.error("Failed to reset password. The link may have expired.");
+    } catch (error) {
+      toast.error(getApiMessage(error));
     }
   };
 
@@ -218,8 +219,8 @@ export function ForgotPasswordForm() {
                 try {
                   await forgotPasswordMutation.mutateAsync({ email });
                   toast.success("New OTP sent");
-                } catch {
-                  toast.error("Failed to resend OTP");
+                } catch (error) {
+                  toast.error(getApiMessage(error));
                 }
               }}
             >

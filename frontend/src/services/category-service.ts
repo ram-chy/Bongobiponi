@@ -7,7 +7,7 @@ export const categoryService = {
 
   listAll: () =>
     apiClient.get<{ data: Category[] }>("/categories", {
-      params: { per_page: 1000 },
+      params: { per_page: 1000, sort: "name", direction: "asc" },
     }),
 
   get: (id: number) =>

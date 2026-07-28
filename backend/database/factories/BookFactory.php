@@ -31,7 +31,6 @@ class BookFactory extends Factory
             'minimum_stock' => fake()->numberBetween(3, 20),
             'description' => fake()->optional(0.7)->paragraph(),
             'cover_image' => fake()->optional(0.3)->imageUrl(640, 480, 'book'),
-            'status' => fake()->boolean(85),
         ];
     }
 }

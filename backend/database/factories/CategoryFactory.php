@@ -18,7 +18,6 @@ class CategoryFactory extends Factory
             'parent_id' => null,
             'name' => fake()->unique()->word(),
             'description' => fake()->optional(0.7)->sentence(),
-            'status' => fake()->boolean(90),
         ];
     }
 }

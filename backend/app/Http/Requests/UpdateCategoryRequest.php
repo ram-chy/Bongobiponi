@@ -29,7 +29,6 @@ class UpdateCategoryRequest extends FormRequest
             ],
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|boolean',
         ];
     }
 }

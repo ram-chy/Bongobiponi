@@ -6,7 +6,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageBreadcrumb } from "@/components/breadcrumb/page-breadcrumb";
 import { PageHeader } from "@/components/page-header/page-header";
-import { Badge } from "@/components/ui/badge";
 import { useCategory } from "@/features/categories/hooks/use-category";
 import { cn } from "@/lib/utils";
 
@@ -65,19 +64,6 @@ export function ViewCategoryPage({ id }: { id: number }) {
               <div>
                 <p className="text-sm text-muted-foreground">Name</p>
                 <p className="font-medium">{category.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Parent Category</p>
-                <p className="font-medium">{category.parent?.name || "None (Top Level)"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge
-                  variant={category.status ? "default" : "destructive"}
-                  className={category.status ? "bg-emerald-600 hover:bg-emerald-600/80" : undefined}
-                >
-                  {category.status ? "ACTIVE" : "INACTIVE"}
-                </Badge>
               </div>
             </div>
           </CardContent>

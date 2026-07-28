@@ -25,6 +25,15 @@ function getTokenFromCookie(): string | null {
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // For FormData, remove Content-Type so the browser sets it with the correct boundary
+    if (config.data instanceof FormData && config.headers) {
+      if (typeof (config.headers as Record<string, unknown>).delete === 'function') {
+        (config.headers as { delete: (h: string) => void }).delete('Content-Type');
+      } else {
+        delete (config.headers as Record<string, unknown>)['Content-Type'];
+      }
+    }
+
     // 1. Try in-memory store first (set after login)
     let token = useAuthStore.getState().token;
 

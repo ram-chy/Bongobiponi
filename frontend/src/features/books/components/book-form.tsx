@@ -18,12 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Search } from "lucide-react";
+import { Loader2, ArrowLeft, Search, Upload, X } from "lucide-react";
 import { useBookForm } from "@/features/books/hooks/use-book-form";
 import { mapValidationErrors } from "@/lib/api-errors";
 import { publisherService } from "@/services/publisher-service";
 import { categoryService } from "@/services/category-service";
 import { authorService } from "@/services/author-service";
+import { bookService } from "@/services/book-service";
 import type { Publisher } from "@/types/publisher";
 import type { Category } from "@/types/category";
 import type { Author } from "@/types/author";
@@ -41,9 +42,8 @@ const bookSchema = z.object({
   selling_price: z.string().min(1, "Selling price is required"),
   minimum_stock: z.string().min(1, "Minimum stock is required"),
   authors: z.array(z.number()).min(1, "At least one author is required"),
-  cover_image: z.string().max(500).optional().or(z.literal("")),
+  cover_image: z.string().optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),
-  status: z.boolean(),
 });
 
 type BookFormData = z.infer<typeof bookSchema>;
@@ -57,7 +57,20 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
   const router = useRouter();
   const bookMutation = useBookForm({ id });
   const [authorSearch, setAuthorSearch] = useState("");
+  const [coverPreview, setCoverPreview] = useState<string | null>(() => {
+    if (defaultValues?.cover_image) {
+      const storageUrl =
+        (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/api$/, "") +
+        "/storage/";
+      return storageUrl + defaultValues.cover_image;
+    }
+    return null;
+  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const initializedIdRef = useRef<number | undefined>(undefined);
+  const coverUserInteracted = useRef(false);
 
   const { data: publishersData } = useQuery({
     queryKey: ["/publishers", "all"],
@@ -95,7 +108,6 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
   } = useForm<BookFormData>({
     resolver: zodResolver(bookSchema),
     defaultValues: {
-      status: true,
       authors: [],
       ...defaultValues,
     },
@@ -104,11 +116,19 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
   useEffect(() => {
     if (defaultValues && initializedIdRef.current !== id) {
       initializedIdRef.current = id;
+      coverUserInteracted.current = false;
       reset({
-        status: true,
         authors: [],
         ...defaultValues,
       });
+      if (defaultValues.cover_image) {
+        const storageUrl =
+          (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/api$/, "") +
+          "/storage/";
+        setCoverPreview(storageUrl + defaultValues.cover_image);
+      } else {
+        setCoverPreview(null);
+      }
     }
   }, [defaultValues, reset, id]);
 
@@ -135,8 +155,47 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
     }
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    coverUserInteracted.current = true;
+    setUploadError(null);
+    const previewUrl = URL.createObjectURL(file);
+    setCoverPreview(previewUrl);
+
+    setIsUploading(true);
+    try {
+      const response = await bookService.uploadCover(file);
+      setValue("cover_image", response.data.data.path);
+    } catch (err: unknown) {
+      setCoverPreview(null);
+      const axiosError = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> }; status?: number }; message?: string };
+      const serverMsg = axiosError?.response?.data?.message;
+      const serverErrors = axiosError?.response?.data?.errors;
+      const detail = serverErrors
+        ? Object.values(serverErrors).flat().join("; ")
+        : serverMsg || axiosError?.message || "Upload failed. Please try again.";
+      setUploadError(detail);
+    } finally {
+      setIsUploading(false);
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveCover = () => {
+    setCoverPreview(null);
+    setValue("cover_image", "");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const onSubmit = async (data: BookFormData) => {
-    const { authors, ...rest } = data;
+    const { authors, cover_image, ...rest } = data;
     const payload = {
       ...rest,
       isbn: rest.isbn || null,
@@ -149,7 +208,7 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
       purchase_price: Number(rest.purchase_price),
       selling_price: Number(rest.selling_price),
       minimum_stock: Number(rest.minimum_stock),
-      cover_image: rest.cover_image || null,
+      cover_image: cover_image || null,
       description: rest.description || null,
       authors: authors,
     };
@@ -310,41 +369,54 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
                 </p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                defaultValue={
-                  defaultValues?.status === false ? "inactive" : "active"
-                }
-                onValueChange={(value: string | null) =>
-                  setValue("status", value === "active")
-                }
-                items={[
-                  { value: "active", label: "Active" },
-                  { value: "inactive", label: "Inactive" },
-                ]}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="cover_image">Cover Image URL</Label>
-              <Input
-                id="cover_image"
-                placeholder="https://example.com/cover.jpg"
-                {...register("cover_image")}
-              />
-              {errors.cover_image && (
-                <p className="text-sm text-destructive">
-                  {errors.cover_image.message}
-                </p>
-              )}
+              <Label>Cover Image</Label>
+              <div className="flex items-start gap-4">
+                <div
+                  className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-4 cursor-pointer hover:border-primary transition-colors size-40"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {coverPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={coverPreview}
+                      alt="Cover preview"
+                      className="size-full object-contain rounded"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                      <Upload className="size-8" />
+                      <span className="text-xs text-center">Click to upload</span>
+                    </div>
+                  )}
+                </div>
+                {coverPreview && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleRemoveCover}
+                  >
+                    <X className="size-4" />
+                  </Button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg,image/webp"
+                  className="hidden"
+                  onChange={handleCoverUpload}
+                />
+                {isUploading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" />
+                    Uploading...
+                  </div>
+                )}
+                {uploadError && (
+                  <p className="text-sm text-destructive">{uploadError}</p>
+                )}
+              </div>
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="description">Description</Label>
@@ -404,7 +476,7 @@ export function BookForm({ defaultValues, id }: BookFormProps) {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || isUploading}>
             {isSubmitting && <Loader2 className="animate-spin" />}
             {id ? "Update Book" : "Create Book"}
           </Button>
