@@ -180,7 +180,7 @@ export function ViewInvoicePage({ id }: ViewInvoicePageProps) {
                   <tr className="border-b bg-muted/50">
                     <th className="p-2 text-left font-medium">#</th>
                     <th className="p-2 text-left font-medium">DC Serial</th>
-                    <th className="p-2 text-left font-medium">SO Serial</th>
+                    <th className="p-2 text-left font-medium">Order Serial</th>
                     <th className="p-2 text-left font-medium">Description</th>
                     <th className="p-2 text-left font-medium">Unit</th>
                     <th className="p-2 text-right font-medium">Delivered Qty</th>
@@ -197,7 +197,7 @@ export function ViewInvoicePage({ id }: ViewInvoicePageProps) {
                         {item.delivery_challan_serial ?? `#${item.delivery_challan_id}`}
                       </td>
                       <td className="p-2 text-xs text-muted-foreground">
-                        {item.sales_order_serial ?? `#${item.sales_order_id}`}
+                        {item.order_serial ?? '-'}
                       </td>
                       <td className="p-2 font-medium">{item.item_description}</td>
                       <td className="p-2">{item.unit}</td>

@@ -1,6 +1,5 @@
 import apiClient from "@/lib/axios";
 import type { DeliveryChallan, DeliveryChallanFormData } from "@/types/delivery-challan";
-import type { SalesOrder } from "@/types/sales-order";
 
 export const deliveryChallanService = {
   list: (params?: Record<string, unknown>) =>
@@ -21,10 +20,5 @@ export const deliveryChallanService = {
   downloadPdf: (id: number) =>
     apiClient.get(`/delivery-challans/${id}/download-pdf`, {
       responseType: "blob",
-    }),
-
-  getSalesOrderItems: (customerId: number) =>
-    apiClient.get("/sales-orders", {
-      params: { customer_id: customerId, per_page: 100 },
     }),
 };

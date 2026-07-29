@@ -11,13 +11,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'order_id',
-    'quotation_id',
-    'quotation_item_id',
     'source_type',
     'item_no',
     'description',
     'unit',
-    'quoted_quantity',
     'ordered_quantity',
     'remaining_order_quantity',
     'unit_price',
@@ -40,7 +37,6 @@ class OrderItem extends Model
     protected function casts(): array
     {
         return [
-            'quoted_quantity' => 'decimal:2',
             'ordered_quantity' => 'decimal:2',
             'remaining_order_quantity' => 'decimal:2',
             'unit_price' => 'decimal:2',
@@ -57,23 +53,9 @@ class OrderItem extends Model
         return $this->belongsTo(Order::class);
     }
 
-    public function quotation(): BelongsTo
-    {
-        return $this->belongsTo(Quotation::class);
-    }
-
-    public function quotationItem(): BelongsTo
-    {
-        return $this->belongsTo(QuotationItem::class);
-    }
-
     public function conversions(): HasMany
     {
         return $this->hasMany(OrderItemConversion::class);
     }
 
-    public function salesOrderItems(): HasMany
-    {
-        return $this->hasMany(SalesOrderItem::class);
-    }
 }

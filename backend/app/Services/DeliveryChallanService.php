@@ -4,8 +4,7 @@ namespace App\Services;
 
 use App\Models\DeliveryChallan;
 use App\Models\Order;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderItem;
+use App\Models\OrderItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +15,6 @@ class DeliveryChallanService
         private readonly DeliveryChallanSerialGeneratorService $serialGenerator,
         private readonly DocumentReferenceService $documentReferenceService,
         private readonly DeliveryChallanStatusTransitionService $statusTransitionService,
-        private readonly SalesOrderService $salesOrderService,
         private readonly OrderService $orderService,
         private readonly ActivityLogService $activityLogService,
         private readonly SourceDocumentOwnershipService $sourceDocumentOwnership,
@@ -55,14 +53,11 @@ class DeliveryChallanService
 
             $this->activityLogService->logCreate('delivery_challan', 'delivery_challan', $deliveryChallan->id, $data);
 
-            $this->autoCompleteAffectedSalesOrders($deliveryChallan);
             $this->autoCompleteAffectedOrders($deliveryChallan);
 
             return $deliveryChallan->load([
                 'customer',
                 'creator',
-                'items.salesOrderItem',
-                'items.salesOrder',
                 'items.orderBooking',
                 'items.quotation',
             ]);
@@ -96,7 +91,7 @@ class DeliveryChallanService
             if ($items !== null) {
                 $this->ensureNoDownstreamReferences($deliveryChallan);
 
-                $this->restoreSalesOrderQuantities($deliveryChallan);
+                $this->restoreOrderQuantities($deliveryChallan);
 
                 $preparedItems = $this->prepareItems($items, $data['customer_id'] ?? $deliveryChallan->customer_id);
                 $calculated = $this->calculateTotals($preparedItems);
@@ -112,14 +107,11 @@ class DeliveryChallanService
                 $this->syncItems($deliveryChallan, $preparedItems);
             }
 
-            $this->autoCompleteAffectedSalesOrders($deliveryChallan);
             $this->autoCompleteAffectedOrders($deliveryChallan);
 
             return $deliveryChallan->load([
                 'customer',
                 'creator',
-                'items.salesOrderItem',
-                'items.salesOrder',
                 'items.orderBooking',
                 'items.quotation',
             ]);
@@ -145,7 +137,7 @@ class DeliveryChallanService
     public function delete(DeliveryChallan $deliveryChallan): void
     {
         DB::transaction(function () use ($deliveryChallan) {
-            $this->restoreSalesOrderQuantities($deliveryChallan);
+            $this->restoreOrderQuantities($deliveryChallan);
 
             $this->activityLogService->logDelete('delivery_challan', 'delivery_challan', $deliveryChallan->id);
 
@@ -162,24 +154,22 @@ class DeliveryChallanService
         return $deliveryChallan->load([
             'customer',
             'creator',
-            'items.salesOrderItem',
-            'items.salesOrder',
             'items.orderBooking',
             'items.quotation',
         ]);
     }
 
-    public function getRemainingItems(int $salesOrderId): SalesOrder
+    public function getRemainingOrderItems(int $orderId): Order
     {
-        $salesOrder = SalesOrder::withoutGlobalScopes()->withTrashed()->findOrFail($salesOrderId);
+        $order = Order::withoutGlobalScopes()->withTrashed()->findOrFail($orderId);
 
         $user = auth()->user();
-        if ($user->hasRole('regular_user') && $salesOrder->created_by !== $user->id) {
-            throw new \Illuminate\Auth\Access\AuthorizationException('You do not have permission to access this sales order.');
+        if ($user->hasRole('regular_user') && $order->created_by !== $user->id) {
+            throw new \Illuminate\Auth\Access\AuthorizationException('You do not have permission to access this order.');
         }
 
-        return $salesOrder->load(['items' => function ($query) {
-            $query->where('remaining_sales_quantity', '>', 0);
+        return $order->load(['items' => function ($query) {
+            $query->where('remaining_order_quantity', '>', 0);
         }]);
     }
 
@@ -189,34 +179,48 @@ class DeliveryChallanService
 
         foreach ($items as $index => $item) {
             $deliveredQuantity = (float) $item['delivered_quantity'];
-            $salesOrderItem = $this->sourceDocumentOwnership->salesOrderItem($item['sales_order_item_id']);
-            $this->sourceDocumentOwnership->ensureMatchesCustomer($customerId, $salesOrderItem->salesOrder);
-            $salesOrderItem->loadMissing(['salesOrder', 'order', 'orderItem.quotationItem']);
 
-            $lockedSalesOrderItem = SalesOrderItem::lockForUpdate()->findOrFail($salesOrderItem->id);
-            $availableQuantity = (float) $lockedSalesOrderItem->remaining_sales_quantity;
-            if ($deliveredQuantity > $availableQuantity) {
-                throw new \InvalidArgumentException(
-                    "Delivery quantity ({$deliveredQuantity}) exceeds remaining quantity ({$availableQuantity}) for sales order item #{$salesOrderItem->id}."
-                );
+            if (! empty($item['order_booking_item_id'])) {
+                $orderItem = $this->sourceDocumentOwnership->orderItem($item['order_booking_item_id']);
+                $this->sourceDocumentOwnership->ensureMatchesCustomer($customerId, $orderItem->order);
+                $orderItem->loadMissing(['order', 'quotationItem']);
+
+                $lockedOrderItem = OrderItem::lockForUpdate()->findOrFail($orderItem->id);
+                $availableQuantity = (float) $lockedOrderItem->remaining_order_quantity;
+                if ($deliveredQuantity > $availableQuantity) {
+                    throw new \InvalidArgumentException(
+                        "Delivery quantity ({$deliveredQuantity}) exceeds remaining quantity ({$availableQuantity}) for order item #{$orderItem->id}."
+                    );
+                }
+
+                $prepared[] = [
+                    'order_booking_id' => $orderItem->order_id,
+                    'order_booking_item_id' => $orderItem->id,
+                    'quotation_id' => $orderItem->quotation_item_id
+                        ? optional($orderItem->quotationItem)->quotation_id
+                        : null,
+                    'quotation_item_id' => $orderItem->quotation_item_id,
+                    'item_description' => $item['description'] ?? $orderItem->description,
+                    'unit' => $item['unit'] ?? $orderItem->unit,
+                    'ordered_quantity' => $orderItem->ordered_quantity,
+                    'delivered_quantity' => $deliveredQuantity,
+                    'unit_price' => $item['unit_price'] ?? $orderItem->unit_price,
+                    'remarks' => $item['remarks'] ?? null,
+                ];
+            } else {
+                $prepared[] = [
+                    'order_booking_id' => null,
+                    'order_booking_item_id' => null,
+                    'quotation_id' => null,
+                    'quotation_item_id' => null,
+                    'item_description' => $item['description'] ?? '',
+                    'unit' => $item['unit'] ?? 'pcs',
+                    'ordered_quantity' => $item['ordered_quantity'] ?? 0,
+                    'delivered_quantity' => $deliveredQuantity,
+                    'unit_price' => $item['unit_price'] ?? 0,
+                    'remarks' => $item['remarks'] ?? null,
+                ];
             }
-
-            $prepared[] = [
-                'sales_order_id' => $salesOrderItem->sales_order_id,
-                'sales_order_item_id' => $salesOrderItem->id,
-                'order_booking_id' => $salesOrderItem->order_id,
-                'order_booking_item_id' => $salesOrderItem->order_item_id,
-                'quotation_id' => $salesOrderItem->orderItem?->quotation_item_id
-                    ? optional($salesOrderItem->orderItem->quotationItem)->quotation_id
-                    : null,
-                'quotation_item_id' => $salesOrderItem->orderItem?->quotation_item_id,
-                'item_description' => $salesOrderItem->description,
-                'unit' => $salesOrderItem->unit,
-                'ordered_quantity' => $salesOrderItem->ordered_quantity,
-                'delivered_quantity' => $deliveredQuantity,
-                'unit_price' => $salesOrderItem->unit_price,
-                'remarks' => $item['remarks'] ?? null,
-            ];
         }
 
         return $prepared;
@@ -242,29 +246,15 @@ class DeliveryChallanService
         ];
     }
 
-    private function autoCompleteAffectedSalesOrders(DeliveryChallan $deliveryChallan): void
-    {
-        $deliveryChallan->load('items');
-        $salesOrderIds = $deliveryChallan->items->pluck('sales_order_id')->unique();
-
-        foreach ($salesOrderIds as $salesOrderId) {
-            $salesOrder = SalesOrder::find($salesOrderId);
-            if ($salesOrder) {
-                $this->salesOrderService->autoCompleteIfAllDelivered($salesOrder);
-            }
-        }
-    }
-
     private function autoCompleteAffectedOrders(DeliveryChallan $deliveryChallan): void
     {
         $deliveryChallan->load('items');
-        $salesOrderIds = $deliveryChallan->items->pluck('sales_order_id')->unique()->filter();
         $orderBookingIds = $deliveryChallan->items->pluck('order_booking_id')->unique()->filter();
 
         foreach ($orderBookingIds as $orderId) {
             $order = Order::find($orderId);
             if ($order) {
-                $this->orderService->autoCompleteIfAllDelivered($order, $salesOrderIds);
+                $this->orderService->autoCompleteIfAllDelivered($order, collect());
             }
         }
     }
@@ -277,30 +267,34 @@ class DeliveryChallanService
             $dcItem->remaining_invoice_quantity = $item['delivered_quantity'];
             $dcItem->save();
 
-            $lockedSalesOrderItem = SalesOrderItem::lockForUpdate()->findOrFail($item['sales_order_item_id']);
-            $lockedSalesOrderItem->decrement('remaining_sales_quantity', $item['delivered_quantity']);
+            if (! empty($item['order_booking_item_id'])) {
+                $lockedOrderItem = OrderItem::lockForUpdate()->findOrFail($item['order_booking_item_id']);
+                $lockedOrderItem->decrement('remaining_order_quantity', $item['delivered_quantity']);
 
-            $lockedSalesOrderItem->conversions()->create([
-                'module' => 'delivery_challan',
-                'reference_id' => $dcItem->id,
-                'quantity' => $item['delivered_quantity'],
-                'created_by' => auth()->id(),
-            ]);
+                $lockedOrderItem->conversions()->create([
+                    'module' => 'delivery_challan',
+                    'reference_id' => $dcItem->id,
+                    'quantity' => $item['delivered_quantity'],
+                    'created_by' => auth()->id(),
+                ]);
+            }
         }
     }
 
-    private function restoreSalesOrderQuantities(DeliveryChallan $deliveryChallan): void
+    private function restoreOrderQuantities(DeliveryChallan $deliveryChallan): void
     {
         foreach ($deliveryChallan->items as $dcItem) {
-            $salesOrderItem = SalesOrderItem::lockForUpdate()->find($dcItem->sales_order_item_id);
-            if ($salesOrderItem) {
-                $salesOrderItem->increment('remaining_sales_quantity', (float) $dcItem->delivered_quantity);
-            }
+            if (! empty($dcItem->order_booking_item_id)) {
+                $orderItem = OrderItem::lockForUpdate()->find($dcItem->order_booking_item_id);
+                if ($orderItem) {
+                    $orderItem->increment('remaining_order_quantity', (float) $dcItem->delivered_quantity);
+                }
 
-            $dcItem->salesOrderItem?->conversions()
-                ->where('module', 'delivery_challan')
-                ->where('reference_id', $dcItem->id)
-                ->delete();
+                $dcItem->orderBookingItem?->conversions()
+                    ->where('module', 'delivery_challan')
+                    ->where('reference_id', $dcItem->id)
+                    ->delete();
+            }
         }
     }
 
@@ -318,8 +312,8 @@ class DeliveryChallanService
                     ->orWhere('company_name', 'like', "%{$search}%");
               })
               ->orWhereHas('items', function (Builder $q) use ($search) {
-                  $q->whereHas('salesOrder', function (Builder $q) use ($search) {
-                      $q->where('sales_order_serial', 'like', "%{$search}%");
+                  $q->whereHas('orderBooking', function (Builder $q) use ($search) {
+                      $q->where('order_serial', 'like', "%{$search}%");
                   });
               });
         });

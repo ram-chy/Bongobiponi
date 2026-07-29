@@ -47,7 +47,6 @@ const statusClasses: Record<string, string> = {
 };
 
 const purchaseTypeLabels: Record<string, string> = {
-  receive_order: "Receive Order",
   manual: "Manual",
 };
 
@@ -178,14 +177,6 @@ export function ViewPurchasePage({ id }: { id: number }) {
                   {purchaseTypeLabels[purchase.purchase_type] ?? purchase.purchase_type}
                 </Badge>
               </div>
-              {purchase.receive_order && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Receive Order</p>
-                  <p className="font-medium">
-                    {purchase.receive_order.order_no}
-                  </p>
-                </div>
-              )}
               <div>
                 <p className="text-sm text-muted-foreground">Invoice No</p>
                 <p className="font-medium">{purchase.invoice_no || "-"}</p>

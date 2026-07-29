@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Database\Seeders\ExpenseCategorySeeder;
-use Database\Seeders\QuotationSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -37,7 +36,6 @@ class DatabaseSeeder extends Seeder
             'role_id' => 3,
         ]);
 
-        $this->call(QuotationSeeder::class);
         $this->call(ExpenseCategorySeeder::class);
 
         // Master Data seeders (order matters: Books depends on Publishers, Categories, Authors)

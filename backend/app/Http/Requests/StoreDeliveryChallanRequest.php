@@ -29,8 +29,11 @@ class StoreDeliveryChallanRequest extends FormRequest
             'status' => 'nullable|string|in:draft,ready,dispatched,delivered,cancelled',
             'remarks' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.sales_order_item_id' => 'required|exists:sales_order_items,id',
+            'items.*.order_booking_item_id' => 'nullable|exists:order_items,id',
             'items.*.delivered_quantity' => 'required|numeric|min:0.01',
+            'items.*.description' => 'required_without:items.*.order_booking_item_id|string|max:500',
+            'items.*.unit' => 'required_without:items.*.order_booking_item_id|string|max:50',
+            'items.*.unit_price' => 'required_without:items.*.order_booking_item_id|numeric|min:0',
             'items.*.remarks' => 'nullable|string|max:500',
         ];
     }
@@ -38,12 +41,13 @@ class StoreDeliveryChallanRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'items.required' => 'At least one sales order item is required.',
-            'items.min' => 'At least one sales order item is required.',
-            'items.*.sales_order_item_id.required' => 'Each item must reference a sales order item.',
-            'items.*.sales_order_item_id.exists' => 'Selected sales order item does not exist.',
+            'items.required' => 'At least one item is required.',
+            'items.min' => 'At least one item is required.',
             'items.*.delivered_quantity.required' => 'Each item must have a delivery quantity.',
             'items.*.delivered_quantity.min' => 'Delivery quantity must be greater than zero.',
+            'items.*.description.required_without' => 'Description is required for manual items.',
+            'items.*.unit.required_without' => 'Unit is required for manual items.',
+            'items.*.unit_price.required_without' => 'Unit price is required for manual items.',
         ];
     }
 }

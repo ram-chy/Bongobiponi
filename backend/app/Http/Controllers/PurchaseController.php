@@ -49,7 +49,7 @@ class PurchaseController extends Controller
     {
         $this->authorize('view', $purchase);
 
-        return new PurchaseResource($purchase->load(['supplier', 'receiveOrder', 'creator', 'updater', 'items.book']));
+        return new PurchaseResource($purchase->load(['supplier', 'creator', 'updater', 'items.book']));
     }
 
     public function update(UpdatePurchaseRequest $request, Purchase $purchase): JsonResponse

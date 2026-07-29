@@ -42,30 +42,19 @@ export interface DeliveryChallan {
 export interface DeliveryChallanItem {
   id: number;
   delivery_challan_id: number;
-  sales_order_id: number;
-  sales_order_item_id: number;
   order_id: number;
   order_item_id: number;
-  quotation_item_id: number | null;
   source_type: string;
   item_no: number;
   description: string;
   unit: string;
   ordered_quantity: string;
-  already_delivered_quantity: string;
-  remaining_sales_quantity: string;
   delivery_quantity: string;
   unit_price: string;
-  discount_percentage: string;
-  discount_amount: string;
-  tax_percentage: string;
-  tax_amount: string;
   line_total: string;
   remarks: string | null;
   sort_order: number;
-  sales_order_serial?: string;
   order_serial?: string;
-  quotation_serial?: string | null;
 }
 
 export interface DeliveryChallanFormData {
@@ -84,25 +73,16 @@ export interface DeliveryChallanFormData {
 }
 
 export interface DeliveryChallanItemFormData {
-  sales_order_item_id: string;
-  sales_order_id: string;
-  order_id: string;
-  order_item_id: string;
-  quotation_item_id?: string;
+  order_booking_item_id: string;
+  order_booking_id: string;
   source_type: string;
   description: string;
   unit: string;
   ordered_quantity: string;
-  already_delivered_quantity: string;
-  remaining_sales_quantity: string;
   delivery_quantity: string;
   unit_price: string;
-  discount_percentage: string;
-  tax_percentage: string;
   remarks: string;
-  sales_order_serial?: string;
   order_serial?: string;
-  quotation_serial?: string;
 }
 
 export interface DeliveryChallanListParams {

@@ -210,12 +210,11 @@ export function ViewDeliveryChallanPage({ id }: ViewDeliveryChallanPageProps) {
                   <tr className="border-b bg-muted/50">
                     <th className="p-2 text-left font-medium">#</th>
                     <th className="p-2 text-left font-medium">Source</th>
-                    <th className="p-2 text-left font-medium">SO Serial</th>
+                    <th className="p-2 text-left font-medium">Order Serial</th>
                     <th className="p-2 text-left font-medium">Description</th>
                     <th className="p-2 text-left font-medium">Unit</th>
                     <th className="p-2 text-right font-medium">Order Qty</th>
                     <th className="p-2 text-right font-medium">Delivery Qty</th>
-                    <th className="p-2 text-right font-medium">Remaining</th>
                     <th className="p-2 text-left font-medium">Remarks</th>
                   </tr>
                 </thead>
@@ -231,16 +230,13 @@ export function ViewDeliveryChallanPage({ id }: ViewDeliveryChallanPageProps) {
                         </span>
                       </td>
                       <td className="p-2 text-xs text-muted-foreground">
-                        {item.sales_order_serial ?? `#${item.sales_order_id}`}
+                        {item.order_serial ?? '-'}
                       </td>
                       <td className="p-2 font-medium">{item.description}</td>
                       <td className="p-2">{item.unit}</td>
                       <td className="p-2 text-right">{item.ordered_quantity}</td>
                       <td className="p-2 text-right font-medium">
                         {item.delivery_quantity}
-                      </td>
-                      <td className="p-2 text-right">
-                        {item.remaining_sales_quantity}
                       </td>
                       <td className="p-2 text-muted-foreground">
                         {item.remarks || "-"}

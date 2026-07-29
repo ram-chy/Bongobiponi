@@ -4,8 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\Order;
-use App\Models\Quotation;
-use App\Models\QuotationItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -172,25 +170,6 @@ class OrderTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
-    public function test_can_filter_by_order_source(): void
-    {
-        Order::factory()->create([
-            'order_source' => 'manual',
-            'created_by' => $this->user->id,
-            'customer_id' => $this->customer->id,
-        ]);
-        Order::factory()->create([
-            'order_source' => 'quotation',
-            'created_by' => $this->user->id,
-            'customer_id' => $this->customer->id,
-        ]);
-
-        $response = $this->getJson('/api/orders?order_source=manual', $this->authHeaders());
-
-        $response->assertOk();
-        $this->assertCount(1, $response->json('data'));
-    }
-
     public function test_can_view_order(): void
     {
         $order = Order::factory()->create([
@@ -273,137 +252,6 @@ class OrderTest extends TestCase
         $response->assertStatus(422);
     }
 
-    public function test_can_create_order_from_quotation(): void
-    {
-        $quotation = Quotation::factory()->create([
-            'created_by' => $this->user->id,
-            'customer_id' => $this->customer->id,
-        ]);
-
-        $quotationItem = QuotationItem::factory()->create([
-            'quotation_id' => $quotation->id,
-            'description' => 'Quoted Product',
-            'unit' => 'pcs',
-            'quantity' => 50,
-            'unit_price' => 200,
-            'discount_percentage' => 5,
-            'tax_percentage' => 18,
-        ]);
-
-        $payload = [
-            'customer_id' => $this->customer->id,
-            'order_date' => now()->format('Y-m-d'),
-            'items' => [
-                [
-                    'quotation_item_id' => $quotationItem->id,
-                    'ordered_quantity' => 10,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/orders', $payload, $this->authHeaders());
-
-        $response->assertCreated();
-
-        $data = $response->json('data');
-        $this->assertEquals('quotation', $data['order_source']);
-
-        $itemData = $data['items'][0];
-        $this->assertEquals('quotation', $itemData['source_type']);
-        $this->assertEquals('Quoted Product', $itemData['description']);
-        $this->assertEquals(200, (int) $itemData['unit_price']);
-        $this->assertEquals(50, (int) $itemData['quoted_quantity']);
-        $this->assertEquals(10, (int) $itemData['ordered_quantity']);
-    }
-
-    public function test_can_create_mixed_order(): void
-    {
-        $quotation = Quotation::factory()->create([
-            'created_by' => $this->user->id,
-            'customer_id' => $this->customer->id,
-        ]);
-
-        $quotationItem = QuotationItem::factory()->create([
-            'quotation_id' => $quotation->id,
-            'description' => 'Quoted Item',
-            'unit' => 'pcs',
-            'quantity' => 20,
-            'unit_price' => 150,
-            'discount_percentage' => 0,
-            'tax_percentage' => 18,
-        ]);
-
-        $payload = [
-            'customer_id' => $this->customer->id,
-            'order_date' => now()->format('Y-m-d'),
-            'items' => [
-                [
-                    'quotation_item_id' => $quotationItem->id,
-                    'ordered_quantity' => 5,
-                ],
-                [
-                    'description' => 'Manual Extra Item',
-                    'unit' => 'job',
-                    'ordered_quantity' => 1,
-                    'unit_price' => 3000,
-                    'discount_percentage' => 0,
-                    'tax_percentage' => 18,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/orders', $payload, $this->authHeaders());
-
-        $response->assertCreated();
-
-        $data = $response->json('data');
-        $this->assertEquals('mixed', $data['order_source']);
-        $this->assertCount(2, $data['items']);
-    }
-
-    public function test_can_create_order_with_items_from_multiple_quotations(): void
-    {
-        $quotationA = Quotation::factory()->create([
-            'created_by' => $this->user->id,
-            'customer_id' => $this->customer->id,
-        ]);
-        $quotationB = Quotation::factory()->create([
-            'created_by' => $this->user->id,
-            'customer_id' => $this->customer->id,
-        ]);
-
-        $itemA = QuotationItem::factory()->create([
-            'quotation_id' => $quotationA->id,
-            'description' => 'Item from Quotation A',
-            'unit' => 'pcs',
-            'quantity' => 10,
-            'unit_price' => 100,
-        ]);
-
-        $itemB = QuotationItem::factory()->create([
-            'quotation_id' => $quotationB->id,
-            'description' => 'Item from Quotation B',
-            'unit' => 'pcs',
-            'quantity' => 20,
-            'unit_price' => 200,
-        ]);
-
-        $payload = [
-            'customer_id' => $this->customer->id,
-            'order_date' => now()->format('Y-m-d'),
-            'items' => [
-                ['quotation_item_id' => $itemA->id, 'ordered_quantity' => 5],
-                ['quotation_item_id' => $itemB->id, 'ordered_quantity' => 10],
-            ],
-        ];
-
-        $response = $this->postJson('/api/orders', $payload, $this->authHeaders());
-
-        $response->assertCreated();
-        $this->assertEquals('quotation', $response->json('data.order_source'));
-        $this->assertCount(2, $response->json('data.items'));
-    }
-
     public function test_serial_resets_yearly(): void
     {
         Order::factory()->create([
@@ -431,34 +279,4 @@ class OrderTest extends TestCase
         $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type') ?? '');
     }
 
-    public function test_ordered_quantity_may_exceed_quoted_quantity(): void
-    {
-        $quotation = Quotation::factory()->create([
-            'created_by' => $this->user->id,
-            'customer_id' => $this->customer->id,
-        ]);
-
-        $quotationItem = QuotationItem::factory()->create([
-            'quotation_id' => $quotation->id,
-            'quantity' => 10,
-            'unit_price' => 100,
-        ]);
-
-        $payload = [
-            'customer_id' => $this->customer->id,
-            'order_date' => now()->format('Y-m-d'),
-            'items' => [
-                [
-                    'quotation_item_id' => $quotationItem->id,
-                    'ordered_quantity' => 25,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/orders', $payload, $this->authHeaders());
-
-        $response->assertCreated();
-        $this->assertEquals(25, (int) $response->json('data.items.0.ordered_quantity'));
-        $this->assertEquals(10, (int) $response->json('data.items.0.quoted_quantity'));
-    }
 }

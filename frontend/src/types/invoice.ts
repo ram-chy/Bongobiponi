@@ -34,12 +34,8 @@ export interface InvoiceItem {
   invoice_id: number;
   delivery_challan_id: number;
   delivery_challan_item_id: number;
-  sales_order_id: number;
-  sales_order_item_id: number;
   order_booking_id: number;
   order_booking_item_id: number;
-  quotation_id: number | null;
-  quotation_item_id: number | null;
   item_description: string;
   unit: string;
   delivered_quantity: string;
@@ -49,9 +45,7 @@ export interface InvoiceItem {
   line_total: string;
   remarks: string | null;
   delivery_challan_serial?: string;
-  sales_order_serial?: string;
   order_serial?: string;
-  quotation_serial?: string | null;
 }
 
 export interface InvoiceFormData {
@@ -76,12 +70,8 @@ export interface InvoiceableItem {
   delivery_challan_item_id: number;
   delivery_challan_id: number;
   delivery_challan_serial: string;
-  sales_order_id: number;
-  sales_order_item_id: number;
   order_booking_id: number;
   order_booking_item_id: number;
-  quotation_id: number | null;
-  quotation_item_id: number | null;
   item_description: string;
   unit: string;
   delivered_quantity: number;

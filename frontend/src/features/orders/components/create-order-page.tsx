@@ -10,7 +10,7 @@ export function CreateOrderPage() {
       <PageBreadcrumb
         items={[
           { label: "Sales" },
-          { label: "Order Booking", href: "/orders" },
+          { label: "Sale", href: "/orders" },
           { label: "Create Order" },
         ]}
       />

@@ -10,9 +10,6 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PublisherController;
 use App\Http\Controllers\PurchaseController;
-use App\Http\Controllers\ReceiveOrderController;
-use App\Http\Controllers\QuotationController;
-use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\DeliveryChallanController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
@@ -63,12 +60,6 @@ Route::middleware(['auth:api', 'token.version', 'throttle:api'])->group(function
     Route::post('books/{id}/restore', [BookController::class, 'restore']);
     Route::post('books/upload-cover', [BookController::class, 'uploadCover']);
 
-    Route::apiResource('receive-orders', ReceiveOrderController::class);
-    Route::post('receive-orders/{id}/restore', [ReceiveOrderController::class, 'restore']);
-    Route::post('receive-orders/{receiveOrder}/approve', [ReceiveOrderController::class, 'approve']);
-    Route::post('receive-orders/{receiveOrder}/receive', [ReceiveOrderController::class, 'receive']);
-    Route::post('receive-orders/{receiveOrder}/cancel', [ReceiveOrderController::class, 'cancel']);
-
     Route::apiResource('purchases', PurchaseController::class);
     Route::post('purchases/{id}/restore', [PurchaseController::class, 'restore']);
     Route::post('purchases/{purchase}/confirm', [PurchaseController::class, 'confirm']);
@@ -83,22 +74,14 @@ Route::middleware(['auth:api', 'token.version', 'throttle:api'])->group(function
         Route::post('inventory/damage', [InventoryController::class, 'damage']);
     });
 
-    Route::apiResource('quotations', QuotationController::class);
-    Route::post('quotations/{id}/restore', [QuotationController::class, 'restore']);
-    Route::get('quotations/{quotation}/download-pdf', [QuotationController::class, 'downloadPDF']);
-
     Route::apiResource('orders', OrderController::class);
     Route::post('orders/{id}/restore', [OrderController::class, 'restore']);
     Route::get('orders/{order}/download-pdf', [OrderController::class, 'downloadPDF']);
 
-    Route::apiResource('sales-orders', SalesOrderController::class);
-    Route::post('sales-orders/{id}/restore', [SalesOrderController::class, 'restore']);
-    Route::get('sales-orders/{sales_order}/download-pdf', [SalesOrderController::class, 'downloadPDF']);
-
     Route::apiResource('delivery-challans', DeliveryChallanController::class);
     Route::post('delivery-challans/{id}/restore', [DeliveryChallanController::class, 'restore']);
     Route::get('delivery-challans/{delivery_challan}/download-pdf', [DeliveryChallanController::class, 'downloadPDF']);
-    Route::get('sales-orders/{salesOrder}/remaining-items', [DeliveryChallanController::class, 'remainingItems']);
+    Route::get('orders/{order}/remaining-items', [DeliveryChallanController::class, 'remainingItems']);
 
     Route::apiResource('invoices', InvoiceController::class);
     Route::post('invoices/{id}/restore', [InvoiceController::class, 'restore']);

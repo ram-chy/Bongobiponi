@@ -19,12 +19,7 @@ export interface PurchaseItem {
 export interface Purchase {
   id: number;
   purchase_no: string;
-  purchase_type: "receive_order" | "manual";
-  receive_order: {
-    id: number;
-    order_no: string;
-  } | null;
-  receive_order_id: number | null;
+  purchase_type: string;
   supplier: {
     id: number;
     name: string;

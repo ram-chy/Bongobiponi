@@ -9,8 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'delivery_challan_id',
-    'sales_order_id',
-    'sales_order_item_id',
     'order_booking_id',
     'order_booking_item_id',
     'quotation_id',
@@ -40,16 +38,6 @@ class DeliveryChallanItem extends Model
         return $this->belongsTo(DeliveryChallan::class);
     }
 
-    public function salesOrder(): BelongsTo
-    {
-        return $this->belongsTo(SalesOrder::class);
-    }
-
-    public function salesOrderItem(): BelongsTo
-    {
-        return $this->belongsTo(SalesOrderItem::class);
-    }
-
     public function orderBooking(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'order_booking_id');
@@ -60,13 +48,4 @@ class DeliveryChallanItem extends Model
         return $this->belongsTo(OrderItem::class, 'order_booking_item_id');
     }
 
-    public function quotation(): BelongsTo
-    {
-        return $this->belongsTo(Quotation::class);
-    }
-
-    public function quotationItem(): BelongsTo
-    {
-        return $this->belongsTo(QuotationItem::class);
-    }
 }

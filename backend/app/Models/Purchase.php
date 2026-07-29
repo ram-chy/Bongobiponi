@@ -21,7 +21,6 @@ class Purchase extends Model
     protected $fillable = [
         'purchase_no',
         'purchase_type',
-        'receive_order_id',
         'supplier_id',
         'invoice_no',
         'invoice_date',
@@ -43,11 +42,6 @@ class Purchase extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
-    }
-
-    public function receiveOrder(): BelongsTo
-    {
-        return $this->belongsTo(ReceiveOrder::class);
     }
 
     public function creator(): BelongsTo

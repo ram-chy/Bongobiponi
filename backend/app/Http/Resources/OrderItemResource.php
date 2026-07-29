@@ -11,13 +11,10 @@ class OrderItemResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'quotation_id' => $this->quotation_id,
-            'quotation_item_id' => $this->quotation_item_id,
             'source_type' => $this->source_type,
             'item_no' => $this->item_no,
             'description' => $this->description,
             'unit' => $this->unit,
-            'quoted_quantity' => $this->quoted_quantity,
             'ordered_quantity' => $this->ordered_quantity,
             'remaining_order_quantity' => $this->remaining_order_quantity,
             'unit_price' => $this->unit_price,

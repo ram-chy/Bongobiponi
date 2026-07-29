@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\VerifyOtpRequest;
+use App\Models\User;
 use App\Services\PasswordResetService;
 use Illuminate\Http\JsonResponse;
 
@@ -16,6 +17,14 @@ class PasswordResetController extends Controller
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'No Account Found for this email',
+            ], 404);
+        }
+
         try {
             $this->passwordResetService->sendOtp($request->email);
         } catch (\RuntimeException $e) {
@@ -31,6 +40,14 @@ class PasswordResetController extends Controller
 
     public function verifyOtp(VerifyOtpRequest $request): JsonResponse
     {
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'No Account Found for this email',
+            ], 404);
+        }
+
         $token = $this->passwordResetService->verifyOtp(
             $request->email,
             $request->otp,

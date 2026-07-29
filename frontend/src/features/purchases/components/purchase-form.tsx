@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,14 +35,11 @@ import { Loader2, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { usePurchaseForm } from "@/features/purchases/hooks/use-purchase-form";
 import { supplierService } from "@/services/supplier-service";
 import { bookService } from "@/services/book-service";
-import { receiveOrderService } from "@/services/receive-order-service";
 import { mapValidationErrors } from "@/lib/api-errors";
 import type { Purchase } from "@/types/purchase";
-import type { ReceiveOrder } from "@/types/receive-order";
 
 const purchaseSchema = z.object({
   supplier_id: z.string().min(1, "Supplier is required"),
-  receive_order_id: z.string().optional().or(z.literal("")),
   invoice_no: z.string().optional().or(z.literal("")),
   invoice_date: z.string().optional().or(z.literal("")),
   purchase_date: z.string().min(1, "Purchase date is required"),
@@ -76,7 +73,6 @@ interface PurchaseFormProps {
 export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
   const router = useRouter();
   const purchaseMutation = usePurchaseForm({ id });
-  const [receiveOrderSearch, setReceiveOrderSearch] = useState("");
 
   const { data: suppliersData, isLoading: suppliersLoading } = useQuery({
     queryKey: ["/suppliers"],
@@ -94,14 +90,6 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
     },
   });
 
-  const { data: receiveOrdersData } = useQuery({
-    queryKey: ["/receive-orders", "dropdown"],
-    queryFn: async () => {
-      const response = await receiveOrderService.list({ per_page: 100, status: "approved" });
-      return response.data.data;
-    },
-  });
-
   const {
     register,
     handleSubmit,
@@ -114,7 +102,6 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
       supplier_id: defaultValues?.supplier_id?.toString() ?? "",
-      receive_order_id: defaultValues?.receive_order_id?.toString() ?? "",
       invoice_no: defaultValues?.invoice_no ?? "",
       invoice_date: defaultValues?.invoice_date
         ? defaultValues.invoice_date.split("T")[0]
@@ -160,37 +147,9 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
     };
   }, [items]);
 
-  const handleReceiveOrderSelect = async (roId: string) => {
-    setValue("receive_order_id", roId);
-    if (!roId) return;
-
-    try {
-      const response = await receiveOrderService.get(parseInt(roId));
-      const ro: ReceiveOrder = response.data.data;
-
-      if (ro.supplier_id) {
-        setValue("supplier_id", ro.supplier_id.toString());
-      }
-
-      if (ro.items?.length) {
-        const roItems = ro.items.map((item) => ({
-          book_id: item.book_id.toString(),
-          ordered_quantity: item.ordered_quantity.toString(),
-          received_quantity: (item.ordered_quantity - item.received_quantity).toString(),
-          purchase_price: item.purchase_price.toString(),
-          remarks: "",
-        }));
-        setValue("items", roItems);
-      }
-    } catch {
-      // ignore
-    }
-  };
-
   const onSubmit = async (data: PurchaseFormData) => {
     const payload = {
       supplier_id: parseInt(data.supplier_id),
-      receive_order_id: data.receive_order_id ? parseInt(data.receive_order_id) : null,
       invoice_no: data.invoice_no || null,
       invoice_date: data.invoice_date || null,
       purchase_date: data.purchase_date,
@@ -223,8 +182,6 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
 
   const suppliers = suppliersData ?? [];
   const books = booksData ?? [];
-  const receiveOrders = receiveOrdersData ?? [];
-  const purchaseType = defaultValues?.purchase_type ?? "manual";
 
   const selectedSupplierId = watch("supplier_id");
   const selectedSupplier = suppliers.find(
@@ -250,34 +207,6 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
             <CardTitle>Purchase Details</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Purchase Type</Label>
-              <Input readOnly value={purchaseType === "receive_order" ? "Receive Order" : "Manual"} />
-              <input type="hidden" {...register("receive_order_id")} />
-            </div>
-
-            {purchaseType === "receive_order" && (
-              <div className="space-y-2">
-                <Label>Receive Order</Label>
-              <Select
-                value={watch("receive_order_id") || null}
-                onValueChange={(value) => handleReceiveOrderSelect(String(value ?? ""))}
-                items={receiveOrders.map((ro: { id: number; order_no: string }) => ({ value: ro.id.toString(), label: ro.order_no }))}
-              >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select receive order" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {receiveOrders.map((ro: { id: number; order_no: string }) => (
-                      <SelectItem key={ro.id} value={ro.id.toString()}>
-                        {ro.order_no}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="supplier_id">Supplier *</Label>
               <Select

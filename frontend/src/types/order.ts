@@ -36,13 +36,10 @@ export interface Order {
 
 export interface OrderItem {
   id: number;
-  quotation_id: number | null;
-  quotation_item_id: number | null;
-  source_type: "manual" | "quotation";
+  source_type: string;
   item_no: number;
   description: string;
   unit: string;
-  quoted_quantity: string | null;
   ordered_quantity: string;
   remaining_order_quantity: string;
   unit_price: string;
@@ -65,9 +62,7 @@ export interface OrderFormData {
 }
 
 export interface OrderItemFormData {
-  quotation_item_id?: string;
-  quotation_id?: string;
-  source_type: "manual" | "quotation";
+  source_type: string;
   description: string;
   unit: string;
   ordered_quantity: string;
@@ -75,8 +70,6 @@ export interface OrderItemFormData {
   discount_percentage: string;
   tax_percentage: string;
   remarks: string;
-  quoted_quantity?: string;
-  quotation_serial?: string;
 }
 
 export interface OrderListParams {

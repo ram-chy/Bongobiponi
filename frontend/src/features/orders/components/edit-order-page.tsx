@@ -26,7 +26,7 @@ export function EditOrderPage({ id }: EditOrderPageProps) {
       <PageBreadcrumb
         items={[
           { label: "Sales" },
-          { label: "Order Booking", href: "/orders" },
+          { label: "Sale", href: "/orders" },
           { label: "Edit Order" },
         ]}
       />
@@ -45,12 +45,6 @@ export function EditOrderPage({ id }: EditOrderPageProps) {
                 reference_notes: order.reference_notes ?? "",
                 notes: order.notes ?? "",
                 items: order.items.map((item) => ({
-                  quotation_item_id: item.quotation_item_id
-                    ? String(item.quotation_item_id)
-                    : undefined,
-                  quotation_id: item.quotation_id
-                    ? String(item.quotation_id)
-                    : undefined,
                   source_type: item.source_type,
                   description: item.description,
                   unit: item.unit,
@@ -59,9 +53,6 @@ export function EditOrderPage({ id }: EditOrderPageProps) {
                   discount_percentage: String(item.discount_percentage ?? ""),
                   tax_percentage: String(item.tax_percentage ?? ""),
                   remarks: item.remarks ?? "",
-                  quoted_quantity: item.quoted_quantity
-                    ? String(item.quoted_quantity)
-                    : undefined,
                 })),
               }
             : undefined

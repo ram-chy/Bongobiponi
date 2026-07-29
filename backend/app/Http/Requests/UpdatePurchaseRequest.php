@@ -15,7 +15,6 @@ class UpdatePurchaseRequest extends FormRequest
     {
         return [
             'supplier_id' => 'sometimes|required|exists:suppliers,id',
-            'receive_order_id' => 'nullable|exists:receive_orders,id',
             'invoice_no' => 'nullable|string|max:100',
             'invoice_date' => 'nullable|date',
             'purchase_date' => 'sometimes|required|date',

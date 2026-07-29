@@ -24,7 +24,6 @@ const statusClasses: Record<string, string> = {
 };
 
 const purchaseTypeLabels: Record<string, string> = {
-  receive_order: "Receive Order",
   manual: "Manual",
 };
 

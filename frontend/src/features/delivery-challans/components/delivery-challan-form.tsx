@@ -34,30 +34,21 @@ import { cn } from "@/lib/utils";
 import { Loader2, ArrowLeft, Search, Trash2, FileText, ArrowUp, ArrowDown } from "lucide-react";
 import { useCustomerSearch } from "@/hooks/use-customer-search";
 import { useDeliveryChallanForm as useDeliveryChallanFormMutation } from "@/features/delivery-challans/hooks/use-delivery-challan-form";
-import { ImportSalesOrderDialog } from "@/features/delivery-challans/components/import-sales-order-dialog";
+import { ImportOrderDialog } from "@/features/delivery-challans/components/import-order-dialog";
 import { mapValidationErrors } from "@/lib/api-errors";
 import type { Customer } from "@/types/customer";
 
 const itemSchema = z.object({
-  sales_order_item_id: z.string().min(1, "Required"),
-  sales_order_id: z.string().min(1, "Required"),
-  order_id: z.string().min(1, "Required"),
-  order_item_id: z.string().min(1, "Required"),
-  quotation_item_id: z.string().optional().or(z.literal("")),
+  order_booking_item_id: z.string().optional().or(z.literal("")),
+  order_booking_id: z.string().optional().or(z.literal("")),
   source_type: z.string(),
   description: z.string().min(1, "Description is required"),
   unit: z.string().min(1, "Unit is required"),
   ordered_quantity: z.string(),
-  already_delivered_quantity: z.string(),
-  remaining_sales_quantity: z.string(),
   delivery_quantity: z.string().min(1, "Delivery qty is required"),
   unit_price: z.string().min(1, "Unit price is required"),
-  discount_percentage: z.string().optional().or(z.literal("")),
-  tax_percentage: z.string().optional().or(z.literal("")),
   remarks: z.string().optional().or(z.literal("")),
-  sales_order_serial: z.string().optional(),
   order_serial: z.string().optional(),
-  quotation_serial: z.string().optional(),
 });
 
 const deliveryChallanSchema = z.object({
@@ -164,7 +155,11 @@ export function DeliveryChallanForm({
       const payload = {
         ...data,
         items: data.items.map((item) => ({
-          sales_order_item_id: item.sales_order_item_id,
+          order_booking_item_id: item.order_booking_item_id || undefined,
+          description: item.description,
+          unit: item.unit,
+          ordered_quantity: item.ordered_quantity,
+          unit_price: item.unit_price,
           delivered_quantity: item.delivery_quantity,
           remarks: item.remarks || undefined,
         })),
@@ -184,39 +179,27 @@ export function DeliveryChallanForm({
   };
 
   const handleImportItems = (importedItems: Array<{
-    sales_order_item_id: number;
-    sales_order_id: number;
-    order_id: number;
-    order_item_id: number;
-    source_type: string;
-    sales_order_serial: string;
+    order_booking_id: number;
+    order_booking_item_id: number;
     description: string;
     unit: string;
     ordered_quantity: string;
-    remaining_sales_quantity: string;
+    remaining_order_quantity: string;
     unit_price: string;
-    discount_percentage: string;
-    tax_percentage: string;
-    remarks: string;
+    delivery_quantity: string;
   }>) => {
     importedItems.forEach((item) => {
       append({
-        sales_order_item_id: String(item.sales_order_item_id),
-        sales_order_id: String(item.sales_order_id),
-        order_id: String(item.order_id),
-        order_item_id: String(item.order_item_id),
-        source_type: item.source_type,
+        order_booking_item_id: String(item.order_booking_item_id),
+        order_booking_id: String(item.order_booking_id),
+        source_type: "order",
         description: item.description,
         unit: item.unit,
         ordered_quantity: item.ordered_quantity,
-        already_delivered_quantity: "",
-        remaining_sales_quantity: item.remaining_sales_quantity,
-        delivery_quantity: item.remaining_sales_quantity,
+        delivery_quantity: item.delivery_quantity,
         unit_price: item.unit_price,
-        discount_percentage: item.discount_percentage,
-        tax_percentage: item.tax_percentage,
-        remarks: item.remarks,
-        sales_order_serial: item.sales_order_serial,
+        remarks: "",
+        order_serial: "",
       });
     });
   };
@@ -478,14 +461,14 @@ export function DeliveryChallanForm({
                 onClick={() => setImportDialogOpen(true)}
               >
                 <FileText className="size-4" />
-                Import From Sales Order
+                Import From Order
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             {fields.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No items yet. Import from a Sales Order to get started.
+                No items yet. Import from an Order to get started.
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -493,132 +476,103 @@ export function DeliveryChallanForm({
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-16">Source</TableHead>
-                      <TableHead className="w-28">SO Serial</TableHead>
                       <TableHead className="min-w-36">Description</TableHead>
                       <TableHead className="w-14">Unit</TableHead>
-                      <TableHead className="w-18">Remaining</TableHead>
                       <TableHead className="w-20">Delivery Qty</TableHead>
                       <TableHead className="min-w-24">Remarks</TableHead>
                       <TableHead className="w-20" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {fields.map((field, index) => {
-                      const remaining = parseFloat(items?.[index]?.remaining_sales_quantity ?? "0") || 0;
-                      const dQty = parseFloat(items?.[index]?.delivery_quantity ?? "0") || 0;
-                      const exceedsRemaining = dQty > remaining;
-
-                      return (
-                        <TableRow key={field.id}>
-                          <TableCell>
-                            <input type="hidden" {...register(`items.${index}.sales_order_item_id`)} />
-                            <input type="hidden" {...register(`items.${index}.sales_order_id`)} />
-                            <input type="hidden" {...register(`items.${index}.order_id`)} />
-                            <input type="hidden" {...register(`items.${index}.order_item_id`)} />
-                            <input type="hidden" {...register(`items.${index}.quotation_item_id`)} />
-                            <input type="hidden" {...register(`items.${index}.source_type`)} />
-                            <input type="hidden" {...register(`items.${index}.ordered_quantity`)} />
-                            <input type="hidden" {...register(`items.${index}.already_delivered_quantity`)} />
-                            <input type="hidden" {...register(`items.${index}.remaining_sales_quantity`)} />
-                            <input type="hidden" {...register(`items.${index}.unit_price`)} />
-                            <input type="hidden" {...register(`items.${index}.discount_percentage`)} />
-                            <input type="hidden" {...register(`items.${index}.tax_percentage`)} />
-                            <input type="hidden" {...register(`items.${index}.sales_order_serial`)} />
-                            <input type="hidden" {...register(`items.${index}.order_serial`)} />
-                            <input type="hidden" {...register(`items.${index}.quotation_serial`)} />
-                            <span className="text-xs font-medium uppercase text-muted-foreground">
-                              {field.source_type}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {items?.[index]?.sales_order_serial ?? "-"}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              placeholder="Description"
-                              {...register(`items.${index}.description`)}
-                            />
-                            {errors.items?.[index]?.description && (
-                              <p className="text-xs text-destructive">
-                                {errors.items[index]?.description?.message}
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              placeholder="Unit"
-                              {...register(`items.${index}.unit`)}
-                            />
-                            {errors.items?.[index]?.unit && (
-                              <p className="text-xs text-destructive">
-                                {errors.items[index]?.unit?.message}
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right text-sm font-medium">
-                            {items?.[index]?.remaining_sales_quantity ?? "-"}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              placeholder="0"
-                              className={exceedsRemaining ? "border-amber-500" : ""}
-                              {...register(`items.${index}.delivery_quantity`)}
-                            />
-                            {errors.items?.[index]?.delivery_quantity && (
-                              <p className="text-xs text-destructive">
-                                {errors.items[index]?.delivery_quantity?.message}
-                              </p>
-                            )}
-                            {exceedsRemaining && (
-                              <p className="text-xs text-amber-600">
-                                Max: {items?.[index]?.remaining_sales_quantity}
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              placeholder="Remarks"
-                              {...register(`items.${index}.remarks`)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-0.5">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                disabled={index === 0}
-                                onClick={() => swap(index, index - 1)}
-                              >
-                                <ArrowUp className="size-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                disabled={index === fields.length - 1}
-                                onClick={() => swap(index, index + 1)}
-                              >
-                                <ArrowDown className="size-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => remove(index)}
-                              >
-                                <Trash2 className="size-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {fields.map((field, index) => (
+                      <TableRow key={field.id}>
+                        <TableCell>
+                          <input type="hidden" {...register(`items.${index}.order_booking_item_id`)} />
+                          <input type="hidden" {...register(`items.${index}.order_booking_id`)} />
+                          <input type="hidden" {...register(`items.${index}.source_type`)} />
+                          <input type="hidden" {...register(`items.${index}.ordered_quantity`)} />
+                          <input type="hidden" {...register(`items.${index}.unit_price`)} />
+                          <input type="hidden" {...register(`items.${index}.order_serial`)} />
+                          <span className="text-xs font-medium uppercase text-muted-foreground">
+                            Order
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            placeholder="Description"
+                            {...register(`items.${index}.description`)}
+                          />
+                          {errors.items?.[index]?.description && (
+                            <p className="text-xs text-destructive">
+                              {errors.items[index]?.description?.message}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            placeholder="Unit"
+                            {...register(`items.${index}.unit`)}
+                          />
+                          {errors.items?.[index]?.unit && (
+                            <p className="text-xs text-destructive">
+                              {errors.items[index]?.unit?.message}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            placeholder="0"
+                            {...register(`items.${index}.delivery_quantity`)}
+                          />
+                          {errors.items?.[index]?.delivery_quantity && (
+                            <p className="text-xs text-destructive">
+                              {errors.items[index]?.delivery_quantity?.message}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            placeholder="Remarks"
+                            {...register(`items.${index}.remarks`)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              disabled={index === 0}
+                              onClick={() => swap(index, index - 1)}
+                            >
+                              <ArrowUp className="size-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              disabled={index === fields.length - 1}
+                              onClick={() => swap(index, index + 1)}
+                            >
+                              <ArrowDown className="size-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => remove(index)}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -674,7 +628,7 @@ export function DeliveryChallanForm({
         </div>
       </div>
 
-      <ImportSalesOrderDialog
+      <ImportOrderDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         customerId={selectedCustomer?.id ?? null}

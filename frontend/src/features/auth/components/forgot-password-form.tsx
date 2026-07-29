@@ -89,6 +89,7 @@ export function ForgotPasswordForm() {
       });
       if (result.token) {
         sessionStorage.setItem("reset_token", result.token);
+        toast.success("OTP Verified Successfully");
         setStep("password");
       } else {
         toast.error("Invalid or expired OTP");

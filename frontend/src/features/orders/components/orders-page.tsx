@@ -145,7 +145,7 @@ export function OrdersPage() {
       <PageBreadcrumb
         items={[
           { label: "Sales" },
-          { label: "Order Booking" },
+          { label: "Sale" },
         ]}
       />
       <PageHeader

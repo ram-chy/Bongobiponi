@@ -3,8 +3,6 @@
 namespace App\Services;
 
 use App\Models\Order;
-use App\Models\QuotationItem;
-use App\Models\SalesOrderItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +11,6 @@ class OrderService
 {
     public function __construct(
         private readonly OrderSerialGeneratorService $serialGenerator,
-        private readonly SourceDocumentOwnershipService $sourceDocumentOwnership,
     ) {}
 
     public function list(array $filters): LengthAwarePaginator
@@ -34,9 +31,9 @@ class OrderService
             unset($data['items']);
 
             $data['order_serial'] = $this->serialGenerator->generate();
-            $data['order_source'] = $this->determineOrderSource($items);
+            $data['order_source'] = 'manual';
 
-            $preparedItems = $this->prepareItems($items, $data['customer_id']);
+            $preparedItems = $this->prepareItems($items);
             $calculated = $this->calculateTotals($preparedItems);
             $data['subtotal'] = $calculated['subtotal'];
             $data['discount_amount'] = $calculated['discount_amount'];
@@ -59,10 +56,8 @@ class OrderService
             unset($data['items']);
 
             if ($items !== null) {
-                $this->ensureNoDownstreamReferences($order);
-
-                $data['order_source'] = $this->determineOrderSource($items);
-                $preparedItems = $this->prepareItems($items, $data['customer_id'] ?? $order->customer_id);
+                $data['order_source'] = 'manual';
+                $preparedItems = $this->prepareItems($items);
                 $calculated = $this->calculateTotals($preparedItems);
                 $data['subtotal'] = $calculated['subtotal'];
                 $data['discount_amount'] = $calculated['discount_amount'];
@@ -81,17 +76,6 @@ class OrderService
         });
     }
 
-    private function ensureNoDownstreamReferences(Order $order): void
-    {
-        $hasDownstream = \App\Models\SalesOrderItem::where('order_id', $order->id)->exists();
-        if ($hasDownstream) {
-            throw new \InvalidArgumentException(
-                'Cannot modify order items. This order has associated Sales Orders. '
-                . 'Please delete the related Sales Orders first before modifying the order items.'
-            );
-        }
-    }
-
     public function findTrashed(int $id): Order
     {
         return Order::withoutGlobalScopes()->withTrashed()->findOrFail($id);
@@ -100,114 +84,48 @@ class OrderService
     public function restore(Order $order): Order
     {
         $order->restore();
-
         return $order->load(['customer', 'creator', 'items']);
     }
 
-    private function determineOrderSource(array $items): string
-    {
-        $quotationCount = 0;
-        $manualCount = 0;
-
-        foreach ($items as $item) {
-            if (! empty($item['quotation_item_id'])) {
-                $quotationCount++;
-            } else {
-                $manualCount++;
-            }
-        }
-
-        if ($quotationCount > 0 && $manualCount > 0) {
-            return 'mixed';
-        }
-
-        if ($quotationCount > 0) {
-            return 'quotation';
-        }
-
-        return 'manual';
-    }
-
-    private function prepareItems(array $items, int $customerId): array
+    private function prepareItems(array $items): array
     {
         $prepared = [];
 
         foreach ($items as $index => $item) {
+            $unitPrice = (float) ($item['unit_price'] ?? 0);
             $orderedQuantity = (float) $item['ordered_quantity'];
 
-            if (! empty($item['quotation_item_id'])) {
-                $quotationItem = $this->sourceDocumentOwnership->quotationItem($item['quotation_item_id']);
-                $this->sourceDocumentOwnership->ensureMatchesCustomer($customerId, $quotationItem->quotation);
-
-                $prepared[] = [
-                    'quotation_id' => $quotationItem->quotation_id,
-                    'quotation_item_id' => $quotationItem->id,
-                    'source_type' => 'quotation',
-                    'item_no' => $index + 1,
-                    'description' => $quotationItem->description,
-                    'unit' => $quotationItem->unit,
-                    'quoted_quantity' => $quotationItem->quantity,
-                    'ordered_quantity' => $orderedQuantity,
-                    'remaining_order_quantity' => $orderedQuantity,
-                    'unit_price' => $quotationItem->unit_price,
-                    'price_snapshot' => json_encode([
-                        'unit_price' => $quotationItem->unit_price,
-                        'description' => $quotationItem->description,
-                        'unit' => $quotationItem->unit,
-                    ]),
-                    'discount_percentage' => $quotationItem->discount_percentage,
-                    'discount_amount' => 0,
-                    'discount_snapshot' => json_encode([
-                        'discount_percentage' => $quotationItem->discount_percentage,
-                        'discount_amount' => $quotationItem->discount_amount,
-                    ]),
-                    'tax_percentage' => $quotationItem->tax_percentage,
-                    'tax_amount' => 0,
-                    'tax_snapshot' => json_encode([
-                        'tax_percentage' => $quotationItem->tax_percentage,
-                        'tax_amount' => $quotationItem->tax_amount,
-                    ]),
-                    'line_total' => 0,
-                    'remarks' => $item['remarks'] ?? null,
-                    'sort_order' => $index + 1,
-                ];
-            } else {
-                $unitPrice = (float) ($item['unit_price'] ?? 0);
-
-                $prepared[] = [
-                    'quotation_id' => null,
-                    'quotation_item_id' => null,
-                    'source_type' => 'manual',
-                    'item_no' => $index + 1,
-                    'description' => $item['description'] ?? '',
-                    'unit' => $item['unit'] ?? '',
-                    'quoted_quantity' => null,
-                    'ordered_quantity' => $orderedQuantity,
-                    'remaining_order_quantity' => $orderedQuantity,
-                    'unit_price' => $unitPrice,
-                    'price_snapshot' => null,
-                    'discount_percentage' => (float) ($item['discount_percentage'] ?? 0),
-                    'discount_amount' => 0,
-                    'discount_snapshot' => null,
-                    'tax_percentage' => (float) ($item['tax_percentage'] ?? 0),
-                    'tax_amount' => 0,
-                    'tax_snapshot' => null,
-                    'line_total' => 0,
-                    'remarks' => $item['remarks'] ?? null,
-                    'sort_order' => $index + 1,
-                ];
-            }
+            $prepared[] = [
+                'quotation_id' => null,
+                'quotation_item_id' => null,
+                'source_type' => 'manual',
+                'item_no' => $index + 1,
+                'description' => $item['description'] ?? '',
+                'unit' => $item['unit'] ?? '',
+                'ordered_quantity' => $orderedQuantity,
+                'remaining_order_quantity' => $orderedQuantity,
+                'unit_price' => $unitPrice,
+                'price_snapshot' => null,
+                'discount_percentage' => (float) ($item['discount_percentage'] ?? 0),
+                'discount_amount' => 0,
+                'discount_snapshot' => null,
+                'tax_percentage' => (float) ($item['tax_percentage'] ?? 0),
+                'tax_amount' => 0,
+                'tax_snapshot' => null,
+                'line_total' => 0,
+                'remarks' => $item['remarks'] ?? null,
+                'sort_order' => $index + 1,
+            ];
         }
 
         return $prepared;
     }
 
-    private function calculateTotals(array $preparedItems): array
+    private function calculateTotals(array &$preparedItems): array
     {
         $subtotal = 0;
         $totalDiscount = 0;
         $totalTax = 0;
-        $grandTotal = 0;
 
         foreach ($preparedItems as &$item) {
             $quantity = (float) $item['ordered_quantity'];
@@ -228,7 +146,6 @@ class OrderService
             $subtotal += $baseAmount;
             $totalDiscount += $discountAmount;
             $totalTax += $taxAmount;
-            $grandTotal += $lineTotal;
         }
         unset($item);
 
@@ -236,43 +153,23 @@ class OrderService
             'subtotal' => round($subtotal, 2),
             'discount_amount' => round($totalDiscount, 2),
             'tax_amount' => round($totalTax, 2),
-            'grand_total' => round($grandTotal, 2),
+            'grand_total' => round($subtotal - $totalDiscount + $totalTax, 2),
         ];
     }
 
     public function autoCompleteIfAllDelivered(Order $order, $salesOrderIds = null): void
     {
-        // CRIT-008 fix: Always check ALL SalesOrderItems for this Order, not just affected ones
-        $items = SalesOrderItem::where('order_id', $order->id)->get();
+        $hasRemaining = $order->items()->where('remaining_order_quantity', '>', 0)->exists();
 
-        if ($items->isEmpty()) {
-            return;
+        if (!$hasRemaining && $order->status !== 'completed') {
+            $order->update(['status' => 'completed']);
         }
-
-        $allDelivered = $items->every(
-            fn ($item) => (float) $item->remaining_sales_quantity <= 0
-        );
-
-        if (! $allDelivered || $order->status === 'completed') {
-            return;
-        }
-
-        $order->update(['status' => 'completed']);
     }
 
     private function syncItems(Order $order, array $preparedItems): void
     {
         foreach ($preparedItems as $item) {
             $order->items()->create($item);
-
-            if (! empty($item['quotation_item_id'])) {
-                $quotationItem = QuotationItem::findOrFail($item['quotation_item_id']);
-                $newRemaining = max(0, $quotationItem->remaining_quantity - $item['ordered_quantity']);
-                $quotationItem->update([
-                    'remaining_quantity' => $newRemaining,
-                    'is_converted' => $newRemaining <= 0,
-                ]);
-            }
         }
     }
 

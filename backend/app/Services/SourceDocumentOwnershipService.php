@@ -7,42 +7,18 @@ use App\Models\DeliveryChallanItem;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Quotation;
-use App\Models\QuotationItem;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderItem;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 class SourceDocumentOwnershipService
 {
-    public function quotationItem(int $id): QuotationItem
-    {
-        $item = QuotationItem::findOrFail($id);
-        $quotation = $this->findDocument(Quotation::class, $item->quotation_id);
-        $this->ensureAccessible($quotation);
-        $item->setRelation('quotation', $quotation);
-
-        return $item;
-    }
-
     public function orderItem(int $id): OrderItem
     {
         $item = OrderItem::findOrFail($id);
         $order = $this->findDocument(Order::class, $item->order_id);
         $this->ensureAccessible($order);
         $item->setRelation('order', $order);
-
-        return $item;
-    }
-
-    public function salesOrderItem(int $id): SalesOrderItem
-    {
-        $item = SalesOrderItem::findOrFail($id);
-        $salesOrder = $this->findDocument(SalesOrder::class, $item->sales_order_id);
-        $this->ensureAccessible($salesOrder);
-        $item->setRelation('salesOrder', $salesOrder);
 
         return $item;
     }

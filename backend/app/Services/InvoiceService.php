@@ -57,8 +57,6 @@ class InvoiceService
                 'creator',
                 'items.deliveryChallan',
                 'items.deliveryChallanItem',
-                'items.salesOrder',
-                'items.salesOrderItem',
                 'items.orderBooking',
                 'items.quotation',
             ]);
@@ -134,8 +132,6 @@ class InvoiceService
                 'creator',
                 'items.deliveryChallan',
                 'items.deliveryChallanItem',
-                'items.salesOrder',
-                'items.salesOrderItem',
                 'items.orderBooking',
                 'items.quotation',
             ]);
@@ -177,8 +173,6 @@ class InvoiceService
 
         $items = DeliveryChallanItem::with([
             'deliveryChallan.customer',
-            'salesOrder',
-            'salesOrderItem',
             'orderBooking',
             'quotation',
         ])
@@ -196,8 +190,6 @@ class InvoiceService
                     'delivery_challan_item_id' => $item->id,
                     'delivery_challan_id' => $item->delivery_challan_id,
                     'delivery_challan_serial' => $item->deliveryChallan?->serial,
-                    'sales_order_id' => $item->sales_order_id,
-                    'sales_order_item_id' => $item->sales_order_item_id,
                     'order_booking_id' => $item->order_booking_id,
                     'order_booking_item_id' => $item->order_booking_item_id,
                     'quotation_id' => $item->quotation_id,
@@ -226,8 +218,6 @@ class InvoiceService
             $this->sourceDocumentOwnership->ensureMatchesCustomer($customerId, $dcItem->deliveryChallan);
             $dcItem->loadMissing([
                 'deliveryChallan',
-                'salesOrder',
-                'salesOrderItem',
                 'orderBooking',
                 'quotation',
             ]);
@@ -252,8 +242,6 @@ class InvoiceService
             $prepared[] = [
                 'delivery_challan_id' => $dcItem->delivery_challan_id,
                 'delivery_challan_item_id' => $dcItem->id,
-                'sales_order_id' => $dcItem->sales_order_id,
-                'sales_order_item_id' => $dcItem->sales_order_item_id,
                 'order_booking_id' => $dcItem->order_booking_id,
                 'order_booking_item_id' => $dcItem->order_booking_item_id,
                 'quotation_id' => $dcItem->quotation_id,

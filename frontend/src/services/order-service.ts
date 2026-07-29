@@ -24,9 +24,4 @@ export const orderService = {
 
   restore: (id: number) =>
     apiClient.post(`/orders/${id}/restore`),
-
-  getQuotationItems: (customerId: number) =>
-    apiClient.get(`/quotations`, {
-      params: { customer_id: customerId, per_page: 100 },
-    }),
 };

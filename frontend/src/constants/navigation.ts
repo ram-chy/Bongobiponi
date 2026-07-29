@@ -1,9 +1,7 @@
 import {
   LayoutDashboard,
   Users,
-  FileText,
   ShoppingCart,
-  ClipboardList,
   Truck,
   Receipt,
   CreditCard,
@@ -88,29 +86,14 @@ export const navigation: NavItem[] = [
     title: "Sales",
     children: [
       {
-        title: "Receive Orders",
-        href: "/receive-orders",
-        icon: ClipboardList,
-      },
-      {
         title: "Purchases",
         href: "/purchases",
         icon: ShoppingCart,
       },
       {
-        title: "Quotations",
-        href: "/quotations",
-        icon: FileText,
-      },
-      {
-        title: "Order Booking",
+        title: "Sale",
         href: "/orders",
         icon: ShoppingCart,
-      },
-      {
-        title: "Sales Orders",
-        href: "/sales-orders",
-        icon: ClipboardList,
       },
       {
         title: "Delivery Challans",

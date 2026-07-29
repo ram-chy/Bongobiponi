@@ -78,8 +78,4 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    public function salesOrderItems(): HasMany
-    {
-        return $this->hasMany(SalesOrderItem::class);
-    }
 }

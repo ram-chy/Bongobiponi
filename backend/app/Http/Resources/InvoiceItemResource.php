@@ -10,7 +10,6 @@ class InvoiceItemResource extends JsonResource
     public function toArray(Request $request): array
     {
         $deliveryChallan = $this->resource->relationLoaded('deliveryChallan') ? $this->resource->deliveryChallan : null;
-        $salesOrder = $this->resource->relationLoaded('salesOrder') ? $this->resource->salesOrder : null;
         $orderBooking = $this->resource->relationLoaded('orderBooking') ? $this->resource->orderBooking : null;
         $quotation = $this->resource->relationLoaded('quotation') ? $this->resource->quotation : null;
 
@@ -19,8 +18,6 @@ class InvoiceItemResource extends JsonResource
             'invoice_id' => $this->invoice_id,
             'delivery_challan_id' => $this->delivery_challan_id,
             'delivery_challan_item_id' => $this->delivery_challan_item_id,
-            'sales_order_id' => $this->sales_order_id,
-            'sales_order_item_id' => $this->sales_order_item_id,
             'order_booking_id' => $this->order_booking_id,
             'order_booking_item_id' => $this->order_booking_item_id,
             'quotation_id' => $this->quotation_id,
@@ -34,7 +31,6 @@ class InvoiceItemResource extends JsonResource
             'line_total' => (string) $this->line_total,
             'remarks' => $this->remarks,
             'delivery_challan_serial' => $deliveryChallan?->serial,
-            'sales_order_serial' => $salesOrder?->sales_order_serial,
             'order_serial' => $orderBooking?->order_serial,
             'quotation_serial' => $quotation?->quotation_serial,
         ];

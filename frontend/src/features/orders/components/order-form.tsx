@@ -23,17 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, ArrowLeft, Search, Plus, Trash2, FileText, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, ArrowLeft, Search, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { useCustomerSearch } from "@/hooks/use-customer-search";
 import { useOrderForm as useOrderFormMutation } from "@/features/orders/hooks/use-order-form";
-import { ImportQuotationDialog } from "@/features/orders/components/import-quotation-dialog";
 import { mapValidationErrors } from "@/lib/api-errors";
 import type { Customer } from "@/types/customer";
 
 const itemSchema = z.object({
-  quotation_item_id: z.string().optional(),
-  quotation_id: z.string().optional(),
-  source_type: z.enum(["manual", "quotation"]),
+  source_type: z.string(),
   description: z.string().min(1, "Description is required"),
   unit: z.string().min(1, "Unit is required"),
   ordered_quantity: z.string().min(1, "Quantity is required"),
@@ -41,8 +38,6 @@ const itemSchema = z.object({
   discount_percentage: z.string().optional().or(z.literal("")),
   tax_percentage: z.string().optional().or(z.literal("")),
   remarks: z.string().optional().or(z.literal("")),
-  quoted_quantity: z.string().optional(),
-  quotation_serial: z.string().optional(),
 });
 
 const orderSchema = z.object({
@@ -98,8 +93,6 @@ export function OrderForm({
     reset,
     formState: { errors, isSubmitting },
   } = form;
-
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const { fields, append, remove, swap } = useFieldArray({ control, name: "items" });
 
@@ -160,13 +153,9 @@ export function OrderForm({
         ...data,
         items: data.items.map((item) => ({
           ...item,
-          quotation_item_id: item.quotation_item_id || undefined,
-          quotation_id: item.quotation_id || undefined,
           discount_percentage: item.discount_percentage || undefined,
           tax_percentage: item.tax_percentage || undefined,
           remarks: item.remarks || undefined,
-          quoted_quantity: undefined,
-          quotation_serial: undefined,
         })),
       };
       await orderMutation.mutateAsync(
@@ -194,37 +183,6 @@ export function OrderForm({
       discount_percentage: "",
       tax_percentage: "",
       remarks: "",
-    });
-  };
-
-  const handleImportItems = (importedItems: Array<{
-    quotation_item_id: number;
-    quotation_id: number;
-    quotation_serial: string;
-    description: string;
-    unit: string;
-    ordered_quantity: string;
-    unit_price: string;
-    discount_percentage: string;
-    tax_percentage: string;
-    quoted_quantity: string;
-    remarks: string;
-  }>) => {
-    importedItems.forEach((item) => {
-      append({
-        quotation_item_id: String(item.quotation_item_id),
-        quotation_id: String(item.quotation_id),
-        quotation_serial: item.quotation_serial,
-        source_type: "quotation",
-        description: item.description,
-        unit: item.unit,
-        ordered_quantity: item.ordered_quantity,
-        unit_price: item.unit_price,
-        discount_percentage: item.discount_percentage,
-        tax_percentage: item.tax_percentage,
-        quoted_quantity: item.quoted_quantity,
-        remarks: item.remarks,
-      });
     });
   };
 
@@ -396,18 +354,7 @@ export function OrderForm({
                   className="gap-1.5"
                 >
                   <Plus className="size-4" />
-                  Add Manual Item
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={!selectedCustomer}
-                  onClick={() => setImportDialogOpen(true)}
-                >
-                  <FileText className="size-4" />
-                  Import From Quotation
+                  Add Item
                 </Button>
               </div>
             </div>
@@ -415,16 +362,14 @@ export function OrderForm({
           <CardContent>
             {fields.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No items yet. Add a manual item or import from a quotation.
+                No items yet. Add an item to get started.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-20">Source</TableHead>
-                      <TableHead className="w-36">Quotation</TableHead>
-                      <TableHead className="min-w-48">Description</TableHead>
+                        <TableHead className="min-w-48">Description</TableHead>
                       <TableHead className="w-20">Unit</TableHead>
                       <TableHead className="w-24">Quantity</TableHead>
                       <TableHead className="w-24">Unit Price</TableHead>
@@ -442,26 +387,7 @@ export function OrderForm({
                       return (
                         <TableRow key={field.id}>
                           <TableCell>
-                            <span className="text-xs font-medium uppercase text-muted-foreground">
-                              {field.source_type}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {field.source_type === "quotation" ? (
-                              <input type="hidden" {...register(`items.${index}.quotation_serial`)} />
-                            ) : null}
-                            <span className="text-xs text-muted-foreground">
-                              {field.source_type === "quotation"
-                                ? (items?.[index]?.quotation_serial ?? "-")
-                                : "-"}
-                            </span>
-                          </TableCell>
-                          <TableCell>
                             <input type="hidden" {...register(`items.${index}.source_type`)} />
-                            <input type="hidden" {...register(`items.${index}.quotation_item_id`)} />
-                            <input type="hidden" {...register(`items.${index}.quotation_id`)} />
-                            <input type="hidden" {...register(`items.${index}.quoted_quantity`)} />
-                            <input type="hidden" {...register(`items.${index}.quotation_serial`)} />
                             <Input
                               placeholder="Description"
                               {...register(`items.${index}.description`)}
@@ -496,14 +422,6 @@ export function OrderForm({
                                 {errors.items[index]?.ordered_quantity?.message}
                               </p>
                             )}
-                            {field.source_type === "quotation" &&
-                              items?.[index]?.quoted_quantity &&
-                              parseFloat(items[index]?.ordered_quantity ?? "0") <
-                                parseFloat(items[index]?.quoted_quantity ?? "0") && (
-                                <p className="text-xs text-amber-600">
-                                  Qty below quoted ({items[index]?.quoted_quantity})
-                                </p>
-                              )}
                           </TableCell>
                           <TableCell>
                             <Input
@@ -617,12 +535,6 @@ export function OrderForm({
         </div>
       </div>
 
-      <ImportQuotationDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-        customerId={selectedCustomer?.id ?? null}
-        onImport={handleImportItems}
-      />
     </form>
   );
 }

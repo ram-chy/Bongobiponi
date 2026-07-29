@@ -60,7 +60,7 @@ export function ViewOrderPage({ id }: ViewOrderPageProps) {
       <PageBreadcrumb
         items={[
           { label: "Sales" },
-          { label: "Order Booking", href: "/orders" },
+          { label: "Sale", href: "/orders" },
           { label: order.order_serial },
         ]}
       />
@@ -184,7 +184,6 @@ export function ViewOrderPage({ id }: ViewOrderPageProps) {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="p-2 text-left font-medium">#</th>
-                    <th className="p-2 text-left font-medium">Source</th>
                     <th className="p-2 text-left font-medium">Description</th>
                     <th className="p-2 text-left font-medium">Unit</th>
                     <th className="p-2 text-right font-medium">Qty</th>
@@ -198,11 +197,6 @@ export function ViewOrderPage({ id }: ViewOrderPageProps) {
                     <tr key={item.id ?? index} className="border-b last:border-0">
                       <td className="p-2 text-muted-foreground">
                         {item.item_no}
-                      </td>
-                      <td className="p-2">
-                        <span className="text-xs font-medium uppercase text-muted-foreground">
-                          {item.source_type}
-                        </span>
                       </td>
                       <td className="p-2 font-medium">{item.description}</td>
                       <td className="p-2">{item.unit}</td>

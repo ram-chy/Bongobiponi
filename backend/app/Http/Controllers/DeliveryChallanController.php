@@ -7,7 +7,6 @@ use App\Http\Requests\UpdateDeliveryChallanRequest;
 use App\Http\Resources\DeliveryChallanCollection;
 use App\Http\Resources\DeliveryChallanResource;
 use App\Models\DeliveryChallan;
-use App\Models\SalesOrder;
 use App\Services\ActivityLogService;
 use App\Services\DeliveryChallanPDFService;
 use App\Services\DeliveryChallanService;
@@ -54,8 +53,6 @@ class DeliveryChallanController extends Controller
             'customer',
             'creator',
             'updater',
-            'items.salesOrderItem',
-            'items.salesOrder',
             'items.orderBooking',
             'items.quotation',
         ]);
@@ -92,13 +89,13 @@ class DeliveryChallanController extends Controller
         return $this->successResponse(new DeliveryChallanResource($deliveryChallan), 'Delivery Challan restored successfully');
     }
 
-    public function remainingItems(int $salesOrderId): JsonResponse
+    public function remainingItems(int $orderId): JsonResponse
     {
         $this->authorize('viewAny', DeliveryChallan::class);
 
-        $salesOrder = $this->deliveryChallanService->getRemainingItems($salesOrderId);
+        $order = $this->deliveryChallanService->getRemainingOrderItems($orderId);
 
-        return $this->successResponse($salesOrder);
+        return $this->successResponse($order);
     }
 
     public function downloadPDF(DeliveryChallan $deliveryChallan): \Illuminate\Http\Response

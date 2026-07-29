@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\InventoryTransactionType;
 use App\Models\InventoryTransaction;
 use App\Models\Purchase;
-use App\Models\ReceiveOrder;
 use Illuminate\Database\Eloquent\Builder;
 
 class PurchaseService
@@ -33,14 +32,6 @@ class PurchaseService
             unset($data['items']);
 
             $data['purchase_no'] = $this->serialGenerator->generate();
-
-            if (! empty($data['receive_order_id'])) {
-                $receiveOrder = ReceiveOrder::findOrFail($data['receive_order_id']);
-                if (isset($data['supplier_id']) && $data['supplier_id'] != $receiveOrder->supplier_id) {
-                    throw new \RuntimeException('Supplier must match the supplier of the linked Receive Order.');
-                }
-                $data['purchase_type'] = 'receive_order';
-            }
 
             /** @var Purchase $purchase */
             $purchase = Purchase::create($data);
@@ -89,10 +80,6 @@ class PurchaseService
 
             $this->increaseStockForPurchase($purchase);
 
-            if ($purchase->receive_order_id) {
-                $this->updateReceiveOrderProgress($purchase);
-            }
-
             return $purchase->load(['supplier', 'creator', 'items.book']);
         });
     }
@@ -111,10 +98,6 @@ class PurchaseService
 
             $purchase->update(['status' => 'cancelled', 'updated_by' => auth()->id()]);
 
-            if ($purchase->receive_order_id) {
-                $this->reverseReceiveOrderProgress($purchase);
-            }
-
             return $purchase->load(['supplier', 'creator', 'items.book']);
         });
     }
@@ -131,10 +114,6 @@ class PurchaseService
                 $this->reverseStockForPurchase($purchase);
             }
 
-            if ($purchase->receive_order_id) {
-                $this->reverseReceiveOrderProgress($purchase);
-            }
-
             $purchase->delete();
         });
     }
@@ -146,10 +125,6 @@ class PurchaseService
 
             if ($purchase->status === 'confirmed') {
                 $this->increaseStockForPurchase($purchase);
-            }
-
-            if ($purchase->receive_order_id && $purchase->status === 'confirmed') {
-                $this->updateReceiveOrderProgress($purchase);
             }
 
             return $purchase->load(['supplier', 'creator', 'items.book']);
@@ -183,71 +158,6 @@ class PurchaseService
                 $purchase->created_by,
             );
         }
-    }
-
-    private function updateReceiveOrderProgress(Purchase $purchase): void
-    {
-        $receiveOrder = ReceiveOrder::with('items')->findOrFail($purchase->receive_order_id);
-
-        foreach ($purchase->items as $purchaseItem) {
-            $roItem = $receiveOrder->items()
-                ->where('book_id', $purchaseItem->book_id)
-                ->lockForUpdate()
-                ->first();
-
-            if ($roItem) {
-                $newReceivedQty = min(
-                    $roItem->received_quantity + $purchaseItem->received_quantity,
-                    $roItem->ordered_quantity
-                );
-                $roItem->update(['received_quantity' => $newReceivedQty]);
-            }
-        }
-
-        $this->refreshReceiveOrderStatus($receiveOrder);
-    }
-
-    public function reverseReceiveOrderProgress(Purchase $purchase): void
-    {
-        $receiveOrder = ReceiveOrder::with('items')->findOrFail($purchase->receive_order_id);
-
-        foreach ($purchase->items as $purchaseItem) {
-            $roItem = $receiveOrder->items->firstWhere('book_id', $purchaseItem->book_id);
-
-            if ($roItem) {
-                $newReceivedQty = max(0, $roItem->received_quantity - $purchaseItem->received_quantity);
-                $roItem->update(['received_quantity' => $newReceivedQty]);
-            }
-        }
-
-        $this->refreshReceiveOrderStatus($receiveOrder);
-    }
-
-    private function refreshReceiveOrderStatus(ReceiveOrder $receiveOrder): void
-    {
-        $receiveOrder->load('items');
-
-        $allFullyReceived = true;
-        $hasReceived = false;
-
-        foreach ($receiveOrder->items as $item) {
-            if ($item->received_quantity > 0) {
-                $hasReceived = true;
-            }
-            if ($item->received_quantity < $item->ordered_quantity) {
-                $allFullyReceived = false;
-            }
-        }
-
-        if ($allFullyReceived && $hasReceived) {
-            $newStatus = 'completed';
-        } elseif ($hasReceived) {
-            $newStatus = 'partially_received';
-        } else {
-            $newStatus = 'approved';
-        }
-
-        $receiveOrder->update(['status' => $newStatus]);
     }
 
     private function applySearch(Builder $query, ?string $search): Builder

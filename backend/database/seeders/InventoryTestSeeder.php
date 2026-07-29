@@ -21,12 +21,6 @@ use App\Models\PaymentItem;
 use App\Models\Publisher;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
-use App\Models\Quotation;
-use App\Models\QuotationItem;
-use App\Models\ReceiveOrder;
-use App\Models\ReceiveOrderItem;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderItem;
 use App\Models\Stock;
 use App\Models\Supplier;
 use App\Models\User;
@@ -40,26 +34,20 @@ class InventoryTestSeeder extends Seeder
 
     private User $admin;
     private int $count = 100;
-    private int $quotationOffset = 0;
     private int $orderOffset = 0;
-    private int $salesOrderOffset = 0;
     private int $deliveryChallanOffset = 0;
     private int $invoiceOffset = 0;
     private int $paymentOffset = 0;
-    private int $receiveOrderOffset = 0;
     private int $purchaseOffset = 0;
     private int $expenseOffset = 0;
     private int $inventoryTransactionOffset = 0;
 
     public function run(): void
     {
-        $this->quotationOffset = Quotation::withoutGlobalScopes()->count();
         $this->orderOffset = Order::withoutGlobalScopes()->count();
-        $this->salesOrderOffset = SalesOrder::withoutGlobalScopes()->count();
         $this->deliveryChallanOffset = DeliveryChallan::withoutGlobalScopes()->count();
         $this->invoiceOffset = Invoice::withoutGlobalScopes()->count();
         $this->paymentOffset = Payment::withoutGlobalScopes()->count();
-        $this->receiveOrderOffset = ReceiveOrder::withoutGlobalScopes()->count();
         $this->purchaseOffset = Purchase::withoutGlobalScopes()->count();
         $this->expenseOffset = Expense::withoutGlobalScopes()->count();
         $this->inventoryTransactionOffset = InventoryTransaction::withoutGlobalScopes()->count();
@@ -83,15 +71,12 @@ class InventoryTestSeeder extends Seeder
         $customers = $this->seedCustomers();
         $expenseCategories = $this->seedExpenseCategories();
 
-        $quotations = $this->seedQuotations($customers);
         $orders = $this->seedOrders($customers);
-        $salesOrders = $this->seedSalesOrders($customers, $orders);
-        $deliveryChallans = $this->seedDeliveryChallans($customers, $salesOrders, $orders, $quotations);
-        $invoices = $this->seedInvoices($customers, $deliveryChallans, $salesOrders, $orders, $quotations);
+        $deliveryChallans = $this->seedDeliveryChallans($customers, $orders);
+        $invoices = $this->seedInvoices($customers, $deliveryChallans, $orders);
         $this->seedPayments($customers, $invoices);
 
-        $receiveOrders = $this->seedReceiveOrders($suppliers, $customers, $books);
-        $this->seedPurchases($suppliers, $receiveOrders, $books);
+        $this->seedPurchases($suppliers, $books);
 
         $this->seedExpenses($expenseCategories);
 
@@ -273,71 +258,6 @@ class InventoryTestSeeder extends Seeder
         return $categories;
     }
 
-    private function seedQuotations(Collection $customers): Collection
-    {
-        $quotations = collect();
-        for ($i = 0; $i < $this->count; $i++) {
-            $quotation = Quotation::create([
-                'quotation_serial' => 'BBQ/' . str_pad((string) ($this->quotationOffset + $i + 1), 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
-                'customer_id' => $customers->random()->id,
-                'quotation_date' => fake()->dateTimeBetween('-3 months', 'now')->format('Y-m-d'),
-                'valid_until' => fake()->dateTimeBetween('+1 week', '+2 months')->format('Y-m-d'),
-                'subtotal' => 0,
-                'discount_amount' => 0,
-                'tax_amount' => 0,
-                'grand_total' => 0,
-                'status' => fake()->randomElement(['draft', 'draft', 'sent', 'approved', 'rejected']),
-                'notes' => fake()->optional()->sentence(),
-                'created_by' => $this->admin->id,
-            ]);
-
-            $subtotal = 0;
-            $itemCount = fake()->numberBetween(1, 4);
-            for ($j = 0; $j < $itemCount; $j++) {
-                $qty = fake()->randomFloat(2, 1, 100);
-                $unitPrice = fake()->randomFloat(2, 10, 5000);
-                $discountPct = fake()->optional(0.3)->randomFloat(2, 0, 20) ?? 0;
-                $baseAmount = $qty * $unitPrice;
-                $discountAmt = $baseAmount * ($discountPct / 100);
-                $taxPct = fake()->optional(0.5)->randomFloat(2, 0, 18) ?? 0;
-                $taxAmt = ($baseAmount - $discountAmt) * ($taxPct / 100);
-                $lineTotal = $baseAmount - $discountAmt + $taxAmt;
-
-                QuotationItem::create([
-                    'quotation_id' => $quotation->id,
-                    'item_no' => $j + 1,
-                    'description' => fake()->sentence(3),
-                    'quantity' => $qty,
-                    'unit' => fake()->randomElement(['pcs', 'kg', 'm', 'sqft']),
-                    'unit_price' => $unitPrice,
-                    'discount_percentage' => $discountPct,
-                    'discount_amount' => $discountAmt,
-                    'tax_percentage' => $taxPct,
-                    'tax_amount' => $taxAmt,
-                    'line_total' => $lineTotal,
-                    'remarks' => fake()->optional()->sentence(),
-                    'sort_order' => $j,
-                    'is_converted' => false,
-                    'remaining_quantity' => $qty,
-                ]);
-
-                $subtotal += $lineTotal;
-            }
-
-            $discountTotal = $quotation->items->sum('discount_amount');
-            $taxTotal = $quotation->items->sum('tax_amount');
-            $quotation->update([
-                'subtotal' => $subtotal,
-                'discount_amount' => $discountTotal,
-                'tax_amount' => $taxTotal,
-                'grand_total' => $subtotal - $discountTotal + $taxTotal,
-            ]);
-
-            $quotations->push($quotation);
-        }
-        return $quotations;
-    }
-
     private function seedOrders(Collection $customers): Collection
     {
         $orders = collect();
@@ -405,80 +325,7 @@ class InventoryTestSeeder extends Seeder
         return $orders;
     }
 
-    private function seedSalesOrders(Collection $customers, Collection $orders): Collection
-    {
-        $salesOrders = collect();
-        for ($i = 0; $i < $this->count; $i++) {
-            $so = SalesOrder::create([
-                'document_reference_uuid' => (string) \Illuminate\Support\Str::uuid(),
-                'sales_order_serial' => 'BBSO/' . str_pad((string) ($this->salesOrderOffset + $i + 1), 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
-                'customer_id' => $customers->random()->id,
-                'sales_order_source' => fake()->randomElement(['single', 'bulk', 'online']),
-                'sales_order_date' => fake()->dateTimeBetween('-3 months', 'now')->format('Y-m-d'),
-                'expected_delivery_date' => fake()->dateTimeBetween('+3 days', '+1 month')->format('Y-m-d'),
-                'subtotal' => 0,
-                'discount_amount' => 0,
-                'tax_amount' => 0,
-                'grand_total' => 0,
-                'currency' => 'INR',
-                'exchange_rate' => 1,
-                'status' => fake()->randomElement(['draft', 'confirmed', 'confirmed', 'completed']),
-                'notes' => fake()->optional()->sentence(),
-                'created_by' => $this->admin->id,
-            ]);
-
-            $subtotal = 0;
-            $itemCount = fake()->numberBetween(1, 3);
-            for ($j = 0; $j < $itemCount; $j++) {
-                $order = $orders->random();
-                $orderItem = $order->items->random();
-                $qty = fake()->randomFloat(2, 1, 50);
-                $unitPrice = fake()->randomFloat(2, 10, 5000);
-                $discountPct = fake()->optional(0.3)->randomFloat(2, 0, 20) ?? 0;
-                $baseAmount = $qty * $unitPrice;
-                $discountAmt = $baseAmount * ($discountPct / 100);
-                $taxPct = fake()->optional(0.5)->randomFloat(2, 0, 18) ?? 0;
-                $taxAmt = ($baseAmount - $discountAmt) * ($taxPct / 100);
-                $lineTotal = $baseAmount - $discountAmt + $taxAmt;
-
-                SalesOrderItem::create([
-                    'sales_order_id' => $so->id,
-                    'order_id' => $order->id,
-                    'order_item_id' => $orderItem->id,
-                    'source_type' => 'order',
-                    'item_no' => $j + 1,
-                    'description' => fake()->sentence(3),
-                    'unit' => fake()->randomElement(['pcs', 'kg', 'm', 'sqft']),
-                    'ordered_quantity' => $qty,
-                    'sales_order_quantity' => $qty,
-                    'remaining_sales_quantity' => $qty,
-                    'unit_price' => $unitPrice,
-                    'discount_percentage' => $discountPct,
-                    'discount_amount' => $discountAmt,
-                    'tax_percentage' => $taxPct,
-                    'tax_amount' => $taxAmt,
-                    'line_total' => $lineTotal,
-                    'sort_order' => $j,
-                ]);
-
-                $subtotal += $lineTotal;
-            }
-
-            $discountTotal = $so->items->sum('discount_amount');
-            $taxTotal = $so->items->sum('tax_amount');
-            $so->update([
-                'subtotal' => $subtotal,
-                'discount_amount' => $discountTotal,
-                'tax_amount' => $taxTotal,
-                'grand_total' => $subtotal - $discountTotal + $taxTotal,
-            ]);
-
-            $salesOrders->push($so);
-        }
-        return $salesOrders;
-    }
-
-    private function seedDeliveryChallans(Collection $customers, Collection $salesOrders, Collection $orders, Collection $quotations): Collection
+    private function seedDeliveryChallans(Collection $customers, Collection $orders): Collection
     {
         $deliveryChallans = collect();
         for ($i = 0; $i < $this->count; $i++) {
@@ -504,8 +351,6 @@ class InventoryTestSeeder extends Seeder
             $subtotal = 0;
             $itemCount = fake()->numberBetween(1, 3);
             for ($j = 0; $j < $itemCount; $j++) {
-                $so = $salesOrders->random();
-                $soItem = $so->items->random();
                 $order = $orders->random();
                 $orderItem = $order->items->random();
                 $qty = fake()->numberBetween(1, 50);
@@ -513,8 +358,6 @@ class InventoryTestSeeder extends Seeder
 
                 $dcItem = DeliveryChallanItem::forceCreate([
                     'delivery_challan_id' => $dc->id,
-                    'sales_order_id' => $so->id,
-                    'sales_order_item_id' => $soItem->id,
                     'order_booking_id' => $order->id,
                     'order_booking_item_id' => $orderItem->id,
                     'item_description' => fake()->sentence(3),
@@ -540,7 +383,7 @@ class InventoryTestSeeder extends Seeder
         return $deliveryChallans;
     }
 
-    private function seedInvoices(Collection $customers, Collection $deliveryChallans, Collection $salesOrders, Collection $orders, Collection $quotations): Collection
+    private function seedInvoices(Collection $customers, Collection $deliveryChallans, Collection $orders): Collection
     {
         $invoices = collect();
         for ($i = 0; $i < $this->count; $i++) {
@@ -566,8 +409,6 @@ class InventoryTestSeeder extends Seeder
             for ($j = 0; $j < $itemCount; $j++) {
                 $dc = $deliveryChallans->random();
                 $dcItem = $dc->items->random();
-                $so = $salesOrders->random();
-                $soItem = $so->items->random();
                 $order = $orders->random();
                 $orderItem = $order->items->random();
 
@@ -579,8 +420,6 @@ class InventoryTestSeeder extends Seeder
                     'invoice_id' => $invoice->id,
                     'delivery_challan_id' => $dc->id,
                     'delivery_challan_item_id' => $dcItem->id,
-                    'sales_order_id' => $so->id,
-                    'sales_order_item_id' => $soItem->id,
                     'order_booking_id' => $order->id,
                     'order_booking_item_id' => $orderItem->id,
                     'item_description' => $dcItem->item_description,
@@ -648,53 +487,12 @@ class InventoryTestSeeder extends Seeder
         }
     }
 
-    private function seedReceiveOrders(Collection $suppliers, Collection $customers, Collection $books): Collection
-    {
-        $receiveOrders = collect();
-        for ($i = 0; $i < $this->count; $i++) {
-            $ro = ReceiveOrder::create([
-                'order_no' => 'RO/' . str_pad((string) ($this->receiveOrderOffset + $i + 1), 3, '0', STR_PAD_LEFT) . '/' . now()->format('y'),
-                'supplier_id' => $suppliers->random()->id,
-                'customer_id' => $customers->random()->id,
-                'expected_delivery_date' => fake()->dateTimeBetween('+3 days', '+2 months')->format('Y-m-d'),
-                'reference_no' => fake()->optional(0.5)->numerify('REF-####'),
-                'notes' => fake()->optional()->sentence(),
-                'status' => fake()->randomElement(['draft', 'approved', 'partially_received', 'completed']),
-                'created_by' => $this->admin->id,
-            ]);
-
-            $itemCount = fake()->numberBetween(1, 4);
-            for ($j = 0; $j < $itemCount; $j++) {
-                $orderedQty = fake()->numberBetween(10, 200);
-                $receivedQty = fake()->numberBetween(0, $orderedQty);
-
-                ReceiveOrderItem::create([
-                    'receive_order_id' => $ro->id,
-                    'book_id' => $books->random()->id,
-                    'ordered_quantity' => $orderedQty,
-                    'received_quantity' => $receivedQty,
-                    'purchase_price' => fake()->randomFloat(2, 50, 2000),
-                    'discount_percentage' => fake()->optional(0.3)->randomFloat(2, 0, 15) ?? 0,
-                    'tax_percentage' => fake()->optional(0.5)->randomFloat(2, 0, 18) ?? 0,
-                    'remarks' => fake()->optional()->sentence(),
-                ]);
-            }
-
-            $receiveOrders->push($ro);
-        }
-        return $receiveOrders;
-    }
-
-    private function seedPurchases(Collection $suppliers, Collection $receiveOrders, Collection $books): void
+    private function seedPurchases(Collection $suppliers, Collection $books): void
     {
         for ($i = 0; $i < $this->count; $i++) {
-            $ro = $receiveOrders->random();
-            $purchaseType = fake()->randomElement(['receive_order', 'manual']);
-
             $purchase = Purchase::create([
                 'purchase_no' => 'PO-' . now()->format('Y') . '-' . str_pad((string) ($this->purchaseOffset + $i + 1), 6, '0', STR_PAD_LEFT),
-                'purchase_type' => $purchaseType,
-                'receive_order_id' => $purchaseType === 'receive_order' ? $ro->id : null,
+                'purchase_type' => 'manual',
                 'supplier_id' => $suppliers->random()->id,
                 'invoice_no' => fake()->optional(0.7)->numerify('INV-#####'),
                 'invoice_date' => fake()->dateTimeBetween('-3 months', 'now')->format('Y-m-d'),

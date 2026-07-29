@@ -27,10 +27,6 @@
       "key": "customer_id",
       "value": "1"
     },
-    {
-      "key": "quotation_item_id",
-      "value": "1"
-    }
   ],
   "item": [
     {
@@ -80,24 +76,6 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"order_date\": \"2026-06-28\",\n  \"expected_delivery_date\": \"2026-07-05\",\n  \"notes\": \"Urgent delivery requested\",\n  \"items\": [\n    {\n      \"description\": \"Office Desk Wooden\",\n      \"unit\": \"pcs\",\n      \"ordered_quantity\": 5,\n      \"unit_price\": 8500,\n      \"discount_percentage\": 10,\n      \"tax_percentage\": 18\n    },\n    {\n      \"description\": \"Office Chair Ergonomic\",\n      \"unit\": \"pcs\",\n      \"ordered_quantity\": 10,\n      \"unit_price\": 12500,\n      \"discount_percentage\": 5,\n      \"tax_percentage\": 18\n    }\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/orders",
-              "host": ["{{base_url}}"],
-              "path": ["orders"]
-            }
-          }
-        },
-        {
-          "name": "Create Order from Quotation",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"order_date\": \"2026-06-28\",\n  \"expected_delivery_date\": \"2026-07-10\",\n  \"notes\": \"Order from approved quotation\",\n  \"items\": [\n    {\n      \"quotation_item_id\": {{quotation_item_id}},\n      \"ordered_quantity\": 3\n    },\n    {\n      \"description\": \"Additional Custom Item\",\n      \"unit\": \"job\",\n      \"ordered_quantity\": 1,\n      \"unit_price\": 5000,\n      \"discount_percentage\": 0,\n      \"tax_percentage\": 18,\n      \"remarks\": \"Manual addition\"\n    }\n  ]\n}"
             },
             "url": {
               "raw": "{{base_url}}/orders",
