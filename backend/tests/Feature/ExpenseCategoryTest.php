@@ -17,7 +17,7 @@ class ExpenseCategoryTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create(['role_id' => 1]);
     }
 
     private function authHeaders(): array

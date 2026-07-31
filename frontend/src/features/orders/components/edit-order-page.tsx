@@ -46,6 +46,7 @@ export function EditOrderPage({ id }: EditOrderPageProps) {
                 notes: order.notes ?? "",
                 items: order.items.map((item) => ({
                   source_type: item.source_type,
+                  book_id: "",
                   description: item.description,
                   unit: item.unit,
                   ordered_quantity: String(item.ordered_quantity ?? ""),

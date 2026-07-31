@@ -29,7 +29,7 @@ class UserRepository
 
     public function updateRole(User $user, int $roleId): User
     {
-        $user->update(['role_id' => $roleId]);
+        $user->forceFill(['role_id' => $roleId])->save();
 
         return $user->load('role');
     }

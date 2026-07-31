@@ -33,6 +33,17 @@ export interface ColumnDef<T> {
   hideable?: boolean;
 }
 
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
+export interface FilterDef {
+  key: string;
+  label: string;
+  options: FilterOption[];
+}
+
 export interface EntityConfig<T> {
   title: string;
   description?: string;
@@ -44,6 +55,7 @@ export interface EntityConfig<T> {
   searchPlaceholder?: string;
   defaultSort?: ColumnSort;
   perPage?: number;
+  filters?: FilterDef[];
 }
 
 export interface RowAction<T> {

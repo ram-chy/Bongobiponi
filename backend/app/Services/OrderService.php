@@ -157,11 +157,13 @@ class OrderService
         ];
     }
 
-    public function autoCompleteIfAllDelivered(Order $order, $salesOrderIds = null): void
+    public function recalculateStatus(Order $order): void
     {
         $hasRemaining = $order->items()->where('remaining_order_quantity', '>', 0)->exists();
 
-        if (!$hasRemaining && $order->status !== 'completed') {
+        if ($hasRemaining && $order->status === 'completed') {
+            $order->update(['status' => 'draft']);
+        } elseif (! $hasRemaining && $order->status !== 'completed') {
             $order->update(['status' => 'completed']);
         }
     }

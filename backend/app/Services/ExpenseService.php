@@ -71,9 +71,13 @@ class ExpenseService
         $expense->delete();
     }
 
-    public function restore(int $id): Expense
+    public function findTrashed(int $id): Expense
     {
-        $expense = Expense::onlyTrashed()->findOrFail($id);
+        return Expense::onlyTrashed()->findOrFail($id);
+    }
+
+    public function restore(Expense $expense): Expense
+    {
         $expense->restore();
 
         $this->activityLogService->logRestore('expense', 'expense', $expense->id);

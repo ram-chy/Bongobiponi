@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useForm, useFieldArray, useWatch, type UseFormReturn } from "react-hook-form";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -23,14 +31,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, ArrowLeft, Search, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, ArrowLeft, Search, Plus, Trash2 } from "lucide-react";
 import { useCustomerSearch } from "@/hooks/use-customer-search";
 import { useOrderForm as useOrderFormMutation } from "@/features/orders/hooks/use-order-form";
+import { bookService } from "@/services/book-service";
 import { mapValidationErrors } from "@/lib/api-errors";
+import type { Book } from "@/types/book";
 import type { Customer } from "@/types/customer";
 
 const itemSchema = z.object({
   source_type: z.string(),
+  book_id: z.string().min(1, "Book is required"),
   description: z.string().min(1, "Description is required"),
   unit: z.string().min(1, "Unit is required"),
   ordered_quantity: z.string().min(1, "Quantity is required"),
@@ -70,6 +81,14 @@ export function OrderForm({
 
   const { data: customers = [] } = useCustomerSearch(customerSearch);
 
+  const { data: booksData, isLoading: booksLoading } = useQuery<Book[]>({
+    queryKey: ["/books"],
+    queryFn: async () => {
+      const response = await bookService.list({ per_page: 1000 });
+      return response.data.data as Book[];
+    },
+  });
+
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
@@ -77,7 +96,19 @@ export function OrderForm({
       expected_delivery_date: "",
       reference_notes: "",
       notes: "",
-      items: [],
+      items: [
+        {
+          source_type: "manual",
+          book_id: "",
+          description: "",
+          unit: "",
+          ordered_quantity: "",
+          unit_price: "",
+          discount_percentage: "",
+          tax_percentage: "",
+          remarks: "",
+        },
+      ],
       ...defaultValues,
       ...(defaultValues?.customer_id ? { customer_id: defaultValues.customer_id } : {}),
     },
@@ -94,7 +125,24 @@ export function OrderForm({
     formState: { errors, isSubmitting },
   } = form;
 
-  const { fields, append, remove, swap } = useFieldArray({ control, name: "items" });
+  const { fields, append, remove } = useFieldArray({ control, name: "items" });
+
+  const backfillBookIds = useCallback(() => {
+    if (!booksData) return;
+
+    form.getValues("items").forEach((item, index) => {
+      if (!item.book_id && item.description) {
+        const match = booksData.find((book) => book.title === item.description);
+        if (match) {
+          setValue(`items.${index}.book_id`, match.id.toString());
+        }
+      }
+    });
+  }, [booksData, form, setValue]);
+
+  useEffect(() => {
+    backfillBookIds();
+  }, [backfillBookIds]);
 
   useEffect(() => {
     if (defaultValues) {
@@ -102,8 +150,9 @@ export function OrderForm({
         ...defaultValues,
         items: defaultValues.items ?? [],
       });
+      backfillBookIds();
     }
-  }, [defaultValues, reset]);
+  }, [defaultValues, reset, backfillBookIds]);
 
   useEffect(() => {
     if (defaultValues?.order_date) {
@@ -152,7 +201,11 @@ export function OrderForm({
       const payload = {
         ...data,
         items: data.items.map((item) => ({
-          ...item,
+          source_type: item.source_type,
+          description: item.description,
+          unit: item.unit,
+          ordered_quantity: item.ordered_quantity,
+          unit_price: item.unit_price,
           discount_percentage: item.discount_percentage || undefined,
           tax_percentage: item.tax_percentage || undefined,
           remarks: item.remarks || undefined,
@@ -173,9 +226,20 @@ export function OrderForm({
     setCustomerSearch("");
   };
 
+  if (booksLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const books = booksData ?? [];
+
   const addManualItem = () => {
     append({
       source_type: "manual",
+      book_id: "",
       description: "",
       unit: "",
       ordered_quantity: "",
@@ -369,17 +433,25 @@ export function OrderForm({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                        <TableHead className="min-w-48">Description</TableHead>
-                      <TableHead className="w-20">Unit</TableHead>
-                      <TableHead className="w-24">Quantity</TableHead>
-                      <TableHead className="w-24">Unit Price</TableHead>
-                      <TableHead className="w-24">Line Total</TableHead>
-                      <TableHead className="min-w-32">Remarks</TableHead>
-                      <TableHead className="w-12" />
+                      <TableHead className="w-[200px]">Book *</TableHead>
+                      <TableHead className="w-[80px]">Quantity *</TableHead>
+                      <TableHead className="w-[110px]">Unit Price *</TableHead>
+                      <TableHead className="w-[110px] text-right">Line Total</TableHead>
+                      <TableHead>Remarks</TableHead>
+                      <TableHead className="w-[50px]" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {fields.map((field, index) => {
+                      const itemDescription = items?.[index]?.description ?? "";
+                      const selectedBookId =
+                        watch(`items.${index}.book_id`) ||
+                        books.find((book) => book.title === itemDescription)?.id.toString() ||
+                        "";
+                      const selectedBook = books.find(
+                        (book) => book.id.toString() === selectedBookId
+                      );
+
                       const qty = parseFloat(items?.[index]?.ordered_quantity ?? "0") || 0;
                       const price = parseFloat(items?.[index]?.unit_price ?? "0") || 0;
                       const lineTotal = (qty * price).toFixed(2);
@@ -388,37 +460,53 @@ export function OrderForm({
                         <TableRow key={field.id}>
                           <TableCell>
                             <input type="hidden" {...register(`items.${index}.source_type`)} />
-                            <Input
-                              placeholder="Description"
-                              {...register(`items.${index}.description`)}
-                            />
-                            {errors.items?.[index]?.description && (
-                              <p className="text-xs text-destructive">
-                                {errors.items[index]?.description?.message}
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              placeholder="Unit"
-                              {...register(`items.${index}.unit`)}
-                            />
-                            {errors.items?.[index]?.unit && (
-                              <p className="text-xs text-destructive">
-                                {errors.items[index]?.unit?.message}
+                            <input type="hidden" {...register(`items.${index}.description`)} />
+                            <input type="hidden" {...register(`items.${index}.unit`)} />
+                            <Select
+                              value={selectedBookId || null}
+                              onValueChange={(value) => {
+                                setValue(`items.${index}.book_id`, String(value ?? ""));
+                                const book = books.find(
+                                  (b) => b.id.toString() === value
+                                ) as Book | undefined;
+                                if (book) {
+                                  setValue(`items.${index}.description`, book.title);
+                                  setValue(`items.${index}.unit`, "pcs");
+                                  setValue(`items.${index}.unit_price`, book.selling_price.toString());
+                                }
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select book">
+                                  {selectedBook?.title}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {books.map((book) => (
+                                  <SelectItem
+                                    key={book.id}
+                                    value={book.id.toString()}
+                                  >
+                                    {book.title}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {errors.items?.[index]?.book_id && (
+                              <p className="mt-1 text-xs text-destructive">
+                                {errors.items[index]?.book_id?.message}
                               </p>
                             )}
                           </TableCell>
                           <TableCell>
                             <Input
                               type="number"
-                              step="0.01"
-                              min="0.01"
+                              min="1"
                               placeholder="0"
                               {...register(`items.${index}.ordered_quantity`)}
                             />
                             {errors.items?.[index]?.ordered_quantity && (
-                              <p className="text-xs text-destructive">
+                              <p className="mt-1 text-xs text-destructive">
                                 {errors.items[index]?.ordered_quantity?.message}
                               </p>
                             )}
@@ -432,7 +520,7 @@ export function OrderForm({
                               {...register(`items.${index}.unit_price`)}
                             />
                             {errors.items?.[index]?.unit_price && (
-                              <p className="text-xs text-destructive">
+                              <p className="mt-1 text-xs text-destructive">
                                 {errors.items[index]?.unit_price?.message}
                               </p>
                             )}
@@ -447,27 +535,7 @@ export function OrderForm({
                             />
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-0.5">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                disabled={index === 0}
-                                onClick={() => swap(index, index - 1)}
-                              >
-                                <ArrowUp className="size-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7"
-                                disabled={index === fields.length - 1}
-                                onClick={() => swap(index, index + 1)}
-                              >
-                                <ArrowDown className="size-3.5" />
-                              </Button>
+                            {fields.length > 1 && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -476,7 +544,7 @@ export function OrderForm({
                               >
                                 <Trash2 className="size-4 text-destructive" />
                               </Button>
-                            </div>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
@@ -502,14 +570,6 @@ export function OrderForm({
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">{totals.subtotal}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">Discount</span>
-                  <span className="font-medium">-{totals.discountAmount}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">Tax</span>
-                  <span className="font-medium">{totals.taxAmount}</span>
                 </div>
                 <div className="flex justify-between gap-4 border-t pt-1">
                   <span className="font-semibold">Grand Total</span>

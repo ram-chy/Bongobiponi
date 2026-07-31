@@ -22,6 +22,7 @@ class Purchase extends Model
         'purchase_no',
         'purchase_type',
         'supplier_id',
+        'publisher_id',
         'invoice_no',
         'invoice_date',
         'purchase_date',
@@ -42,6 +43,11 @@ class Purchase extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function publisher(): BelongsTo
+    {
+        return $this->belongsTo(Publisher::class);
     }
 
     public function creator(): BelongsTo

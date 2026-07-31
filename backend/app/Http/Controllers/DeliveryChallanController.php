@@ -54,7 +54,6 @@ class DeliveryChallanController extends Controller
             'creator',
             'updater',
             'items.orderBooking',
-            'items.quotation',
         ]);
 
         return $this->successResponse(new DeliveryChallanResource($deliveryChallan), 'Delivery Challan retrieved successfully');

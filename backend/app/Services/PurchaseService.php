@@ -16,7 +16,7 @@ class PurchaseService
 
     public function list(array $filters): \Illuminate\Pagination\LengthAwarePaginator
     {
-        $query = Purchase::query()->with(['supplier', 'creator']);
+        $query = Purchase::query()->with(['supplier', 'publisher', 'creator', 'items']);
 
         $query = $this->applySearch($query, $filters['search'] ?? null);
         $query = $this->applyFilters($query, $filters);
@@ -41,7 +41,7 @@ class PurchaseService
                 $purchase->items()->create($item);
             }
 
-            return $purchase->load(['supplier', 'creator', 'items.book']);
+            return $purchase->load(['supplier', 'publisher', 'creator', 'items.book']);
         });
     }
 
@@ -65,7 +65,7 @@ class PurchaseService
                 }
             }
 
-            return $purchase->load(['supplier', 'creator', 'items.book']);
+            return $purchase->load(['supplier', 'publisher', 'creator', 'items.book']);
         });
     }
 
@@ -80,7 +80,7 @@ class PurchaseService
 
             $this->increaseStockForPurchase($purchase);
 
-            return $purchase->load(['supplier', 'creator', 'items.book']);
+            return $purchase->load(['supplier', 'publisher', 'creator', 'items.book']);
         });
     }
 
@@ -98,7 +98,7 @@ class PurchaseService
 
             $purchase->update(['status' => 'cancelled', 'updated_by' => auth()->id()]);
 
-            return $purchase->load(['supplier', 'creator', 'items.book']);
+            return $purchase->load(['supplier', 'publisher', 'creator', 'items.book']);
         });
     }
 
@@ -127,7 +127,7 @@ class PurchaseService
                 $this->increaseStockForPurchase($purchase);
             }
 
-            return $purchase->load(['supplier', 'creator', 'items.book']);
+            return $purchase->load(['supplier', 'publisher', 'creator', 'items.book']);
         });
     }
 
@@ -174,6 +174,9 @@ class PurchaseService
               ->orWhereHas('supplier', function (Builder $q) use ($search) {
                   $q->where('name', 'like', "%{$search}%")
                     ->orWhere('company_name', 'like', "%{$search}%");
+              })
+              ->orWhereHas('publisher', function (Builder $q) use ($search) {
+                  $q->where('name', 'like', "%{$search}%");
               });
         });
     }
@@ -186,6 +189,10 @@ class PurchaseService
 
         if (! empty($filters['supplier_id'])) {
             $query->where('supplier_id', $filters['supplier_id']);
+        }
+
+        if (! empty($filters['publisher_id'])) {
+            $query->where('publisher_id', $filters['publisher_id']);
         }
 
         if (! empty($filters['purchase_type'])) {

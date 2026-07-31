@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Mail\SendOtpMail;
 use App\Models\User;
 use App\Services\PasswordResetService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,6 +22,8 @@ class PasswordResetTokenExpiryTest extends TestCase
     {
         parent::setUp();
 
+        Mail::fake();
+
         $this->service = new PasswordResetService();
         $user = User::factory()->create(['email' => 'reset@test.com']);
         $this->email = $user->email;
@@ -28,7 +32,7 @@ class PasswordResetTokenExpiryTest extends TestCase
     public function test_reset_token_works_within_15_minutes(): void
     {
         $this->service->sendOtp($this->email);
-        $otp = $this->getLatestOtp($this->email);
+        $otp = $this->getLatestOtp();
 
         $token = $this->service->verifyOtp($this->email, $otp);
         $this->assertNotNull($token);
@@ -42,7 +46,7 @@ class PasswordResetTokenExpiryTest extends TestCase
     public function test_reset_token_rejected_after_15_minutes(): void
     {
         $this->service->sendOtp($this->email);
-        $otp = $this->getLatestOtp($this->email);
+        $otp = $this->getLatestOtp();
 
         $token = $this->service->verifyOtp($this->email, $otp);
         $this->assertNotNull($token);
@@ -56,7 +60,7 @@ class PasswordResetTokenExpiryTest extends TestCase
     public function test_otp_rejected_after_10_minutes(): void
     {
         $this->service->sendOtp($this->email);
-        $otp = $this->getLatestOtp($this->email);
+        $otp = $this->getLatestOtp();
 
         Carbon::setTestNow(now()->addMinutes(11));
 
@@ -78,7 +82,7 @@ class PasswordResetTokenExpiryTest extends TestCase
     public function test_full_flow_happy_path(): void
     {
         $this->service->sendOtp($this->email);
-        $otp = $this->getLatestOtp($this->email);
+        $otp = $this->getLatestOtp();
 
         $token = $this->service->verifyOtp($this->email, $otp);
         $this->assertNotNull($token);
@@ -93,7 +97,7 @@ class PasswordResetTokenExpiryTest extends TestCase
     public function test_reset_token_reusable_after_successful_reset(): void
     {
         $this->service->sendOtp($this->email);
-        $otp = $this->getLatestOtp($this->email);
+        $otp = $this->getLatestOtp();
 
         $token = $this->service->verifyOtp($this->email, $otp);
         $this->service->resetPassword($this->email, $token, 'NewPassword123!');
@@ -105,7 +109,7 @@ class PasswordResetTokenExpiryTest extends TestCase
     public function test_otp_rejected_after_5_failed_attempts(): void
     {
         $this->service->sendOtp($this->email);
-        $otp = $this->getLatestOtp($this->email);
+        $otp = $this->getLatestOtp();
 
         for ($i = 0; $i < 5; $i++) {
             $this->service->verifyOtp($this->email, '0000');
@@ -124,7 +128,7 @@ class PasswordResetTokenExpiryTest extends TestCase
     public function test_otp_verifies_with_less_than_5_failed_attempts(): void
     {
         $this->service->sendOtp($this->email);
-        $otp = $this->getLatestOtp($this->email);
+        $otp = $this->getLatestOtp();
 
         for ($i = 0; $i < 4; $i++) {
             $this->service->verifyOtp($this->email, '0000');
@@ -137,7 +141,7 @@ class PasswordResetTokenExpiryTest extends TestCase
     public function test_correct_otp_does_not_increment_failed_attempts(): void
     {
         $this->service->sendOtp($this->email);
-        $otp = $this->getLatestOtp($this->email);
+        $otp = $this->getLatestOtp();
 
         $this->service->verifyOtp($this->email, $otp);
 
@@ -148,11 +152,8 @@ class PasswordResetTokenExpiryTest extends TestCase
         $this->assertEquals(0, $failedAttempts);
     }
 
-    private function getLatestOtp(string $email): string
+    private function getLatestOtp(): string
     {
-        return DB::table('password_reset_otps')
-            ->where('email', $email)
-            ->latest()
-            ->value('otp');
+        return Mail::sent(SendOtpMail::class)->first()->otp;
     }
 }

@@ -34,12 +34,14 @@ import {
 import { Loader2, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { usePurchaseForm } from "@/features/purchases/hooks/use-purchase-form";
 import { supplierService } from "@/services/supplier-service";
+import { publisherService } from "@/services/publisher-service";
 import { bookService } from "@/services/book-service";
 import { mapValidationErrors } from "@/lib/api-errors";
 import type { Purchase } from "@/types/purchase";
 
 const purchaseSchema = z.object({
   supplier_id: z.string().min(1, "Supplier is required"),
+  publisher_id: z.string().optional().or(z.literal("")),
   invoice_no: z.string().optional().or(z.literal("")),
   invoice_date: z.string().optional().or(z.literal("")),
   purchase_date: z.string().min(1, "Purchase date is required"),
@@ -82,6 +84,14 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
     },
   });
 
+  const { data: publishersData, isLoading: publishersLoading } = useQuery({
+    queryKey: ["/publishers"],
+    queryFn: async () => {
+      const response = await publisherService.list({ per_page: 100 });
+      return response.data.data;
+    },
+  });
+
   const { data: booksData, isLoading: booksLoading } = useQuery({
     queryKey: ["/books"],
     queryFn: async () => {
@@ -102,6 +112,7 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
       supplier_id: defaultValues?.supplier_id?.toString() ?? "",
+      publisher_id: defaultValues?.publisher_id?.toString() ?? "",
       invoice_no: defaultValues?.invoice_no ?? "",
       invoice_date: defaultValues?.invoice_date
         ? defaultValues.invoice_date.split("T")[0]
@@ -150,6 +161,7 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
   const onSubmit = async (data: PurchaseFormData) => {
     const payload = {
       supplier_id: parseInt(data.supplier_id),
+      publisher_id: data.publisher_id ? parseInt(data.publisher_id) : null,
       invoice_no: data.invoice_no || null,
       invoice_date: data.invoice_date || null,
       purchase_date: data.purchase_date,
@@ -172,7 +184,7 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
     }
   };
 
-  if (suppliersLoading || booksLoading) {
+  if (suppliersLoading || publishersLoading || booksLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -181,11 +193,17 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
   }
 
   const suppliers = suppliersData ?? [];
+  const publishers = publishersData ?? [];
   const books = booksData ?? [];
 
   const selectedSupplierId = watch("supplier_id");
   const selectedSupplier = suppliers.find(
     (s: { id: number }) => s.id.toString() === selectedSupplierId
+  );
+
+  const selectedPublisherId = watch("publisher_id");
+  const selectedPublisher = publishers.find(
+    (p: { id: number; name: string }) => p.id.toString() === selectedPublisherId
   );
 
   return (
@@ -212,7 +230,6 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
               <Select
                 value={watch("supplier_id") || null}
                 onValueChange={(value) => setValue("supplier_id", String(value ?? ""))}
-                items={suppliers.map((supplier: { id: number; company_name: string }) => ({ value: supplier.id.toString(), label: supplier.company_name }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select supplier">
@@ -235,13 +252,34 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="invoice_no">Invoice No</Label>
-              <Input id="invoice_no" {...register("invoice_no")} />
+              <Label htmlFor="publisher_id">Publisher</Label>
+              <Select
+                value={watch("publisher_id") || null}
+                onValueChange={(value) => setValue("publisher_id", String(value ?? ""))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select publisher">
+                    {selectedPublisher?.name}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {publishers.map((publisher: { id: number; name: string }) => (
+                    <SelectItem key={publisher.id} value={publisher.id.toString()}>
+                      {publisher.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.publisher_id && (
+                <p className="text-sm text-destructive">
+                  {errors.publisher_id.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="invoice_date">Invoice Date</Label>
-              <Input id="invoice_date" type="date" {...register("invoice_date")} />
+              <Label htmlFor="invoice_no">Invoice No</Label>
+              <Input id="invoice_no" {...register("invoice_no")} />
             </div>
 
             <div className="space-y-2">
@@ -252,6 +290,11 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
                   {errors.purchase_date.message}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="invoice_date">Invoice Date</Label>
+              <Input id="invoice_date" type="date" {...register("invoice_date")} />
             </div>
 
             <div className="space-y-2 sm:col-span-2">
@@ -321,14 +364,14 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
                             setValue(`items.${index}.book_id`, String(value ?? ""));
                             const book = books.find(
                               (b: { id: number }) => b.id.toString() === value
-                            ) as { id: number; title: string } | undefined;
+                            ) as { id: number; title: string; purchase_price: number } | undefined;
                             if (book) {
+                              setValue(`items.${index}.purchase_price`, book.purchase_price.toString());
                               if (!items?.[index]?.ordered_quantity) {
                                 setValue(`items.${index}.ordered_quantity`, "0");
                               }
                             }
                           }}
-                          items={books.map((book: { id: number; title: string }) => ({ value: book.id.toString(), label: book.title }))}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select book">

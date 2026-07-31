@@ -21,7 +21,7 @@ class ExpenseTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create(['role_id' => 1]);
         $this->category = ExpenseCategory::factory()->create(['created_by' => $this->user->id]);
     }
 

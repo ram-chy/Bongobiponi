@@ -13,12 +13,12 @@ return new class extends Migration
             $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
             $table->foreignId('delivery_challan_id')->constrained()->cascadeOnDelete();
             $table->foreignId('delivery_challan_item_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('sales_order_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('sales_order_item_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('sales_order_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('sales_order_item_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignId('order_booking_id')->constrained('orders')->cascadeOnDelete();
             $table->foreignId('order_booking_item_id')->constrained('order_items')->cascadeOnDelete();
-            $table->foreignId('quotation_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('quotation_item_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('quotation_id')->nullable();
+            $table->foreignId('quotation_item_id')->nullable();
             $table->string('item_description');
             $table->string('unit', 50);
             $table->decimal('delivered_quantity', 15, 2);

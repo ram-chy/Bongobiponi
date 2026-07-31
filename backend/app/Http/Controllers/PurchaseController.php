@@ -22,7 +22,7 @@ class PurchaseController extends Controller
         $this->authorize('viewAny', Purchase::class);
 
         $purchases = $this->service->list($request->only([
-            'search', 'status', 'supplier_id', 'purchase_type',
+            'search', 'status', 'supplier_id', 'publisher_id', 'purchase_type',
             'date_from', 'date_to', 'sort', 'direction', 'per_page',
         ]));
 
@@ -39,7 +39,7 @@ class PurchaseController extends Controller
         ]);
 
         return $this->successResponse(
-            new PurchaseResource($purchase->load(['supplier', 'creator', 'items.book'])),
+            new PurchaseResource($purchase->load(['supplier', 'publisher', 'creator', 'items.book'])),
             'Purchase created successfully.',
             201,
         );
@@ -49,7 +49,7 @@ class PurchaseController extends Controller
     {
         $this->authorize('view', $purchase);
 
-        return new PurchaseResource($purchase->load(['supplier', 'creator', 'updater', 'items.book']));
+        return new PurchaseResource($purchase->load(['supplier', 'publisher', 'creator', 'updater', 'items.book']));
     }
 
     public function update(UpdatePurchaseRequest $request, Purchase $purchase): JsonResponse

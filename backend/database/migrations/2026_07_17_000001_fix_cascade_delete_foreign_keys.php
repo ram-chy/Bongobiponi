@@ -9,12 +9,6 @@ return new class extends Migration
     public function up(): void
     {
         // C4: Fix customer_id FKs — change cascadeOnDelete to restrictOnDelete
-        // Quotations
-        Schema::table('quotations', function (Blueprint $table) {
-            $table->dropForeign(['customer_id']);
-            $table->foreign('customer_id')->references('id')->on('customers')->restrictOnDelete();
-        });
-
         // Orders
         Schema::table('orders', function (Blueprint $table) {
             $table->dropForeign(['customer_id']);
@@ -48,13 +42,6 @@ return new class extends Migration
         // C5: Fix created_by/updated_by/approved_by FKs — change to nullOnDelete
         // Customers
         Schema::table('customers', function (Blueprint $table) {
-            $table->dropForeign(['created_by']);
-            $table->unsignedBigInteger('created_by')->nullable()->change();
-            $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
-        });
-
-        // Quotations
-        Schema::table('quotations', function (Blueprint $table) {
             $table->dropForeign(['created_by']);
             $table->unsignedBigInteger('created_by')->nullable()->change();
             $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
@@ -152,11 +139,6 @@ return new class extends Migration
     public function down(): void
     {
         // Revert customer_id FKs back to cascadeOnDelete
-        Schema::table('quotations', function (Blueprint $table) {
-            $table->dropForeign(['customer_id']);
-            $table->foreign('customer_id')->references('id')->on('customers')->cascadeOnDelete();
-        });
-
         Schema::table('orders', function (Blueprint $table) {
             $table->dropForeign(['customer_id']);
             $table->foreign('customer_id')->references('id')->on('customers')->cascadeOnDelete();
@@ -184,11 +166,6 @@ return new class extends Migration
 
         // Revert created_by/updated_by/approved_by FKs
         Schema::table('customers', function (Blueprint $table) {
-            $table->dropForeign(['created_by']);
-            $table->foreign('created_by')->references('id')->on('users');
-        });
-
-        Schema::table('quotations', function (Blueprint $table) {
             $table->dropForeign(['created_by']);
             $table->foreign('created_by')->references('id')->on('users');
         });

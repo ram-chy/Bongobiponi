@@ -26,6 +26,11 @@ export interface Purchase {
     company_name: string;
   } | null;
   supplier_id: number;
+  publisher: {
+    id: number;
+    name: string;
+  } | null;
+  publisher_id: number | null;
   invoice_no: string | null;
   invoice_date: string | null;
   purchase_date: string;

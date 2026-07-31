@@ -17,7 +17,7 @@ class CustomerTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create(['role_id' => 1]);
     }
 
     private function authHeaders(): array
@@ -141,8 +141,6 @@ class CustomerTest extends TestCase
 
     public function test_can_update_customer(): void
     {
-        $this->user->update(['role_id' => 1]);
-
         $customer = Customer::factory()->create(['created_by' => $this->user->id]);
 
         $response = $this->putJson("/api/customers/{$customer->id}", [
@@ -156,7 +154,6 @@ class CustomerTest extends TestCase
 
     public function test_can_soft_delete_customer(): void
     {
-        $this->user->update(['role_id' => 1]);
         $customer = Customer::factory()->create(['created_by' => $this->user->id]);
 
         $response = $this->deleteJson("/api/customers/{$customer->id}", [], $this->authHeaders());
@@ -167,7 +164,6 @@ class CustomerTest extends TestCase
 
     public function test_can_restore_customer(): void
     {
-        $this->user->update(['role_id' => 1]);
         $customer = Customer::factory()->create(['created_by' => $this->user->id]);
         $customer->delete();
 

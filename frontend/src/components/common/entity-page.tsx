@@ -6,7 +6,14 @@ import { useRouter } from "next/navigation";
 import type { SortingState } from "@tanstack/react-table";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DataTable } from "@/components/tables/data-table";
 import { PageBreadcrumb } from "@/components/breadcrumb/page-breadcrumb";
 import { PageHeader } from "@/components/page-header/page-header";
@@ -38,6 +45,20 @@ export function EntityPage<T extends { id: number }>({
   );
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  const initialFilters = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const f of config.filters ?? []) {
+      map[f.key] = "";
+    }
+    return map;
+  }, [config.filters]);
+
+  const [filters, setFilters] = useState<Record<string, string>>(initialFilters);
+
+  useEffect(() => {
+    setFilters(initialFilters);
+  }, [initialFilters]);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedSearch(search);
@@ -53,6 +74,9 @@ export function EntityPage<T extends { id: number }>({
     per_page: config.perPage ?? 15,
     sort: sort?.id === "created_at" ? undefined : sort?.id,
     direction: sort?.desc ? ("desc" as const) : ("asc" as const),
+    ...Object.fromEntries(
+      Object.entries(filters).filter(([, v]) => v !== "")
+    ),
   };
 
   const resolveViewRoute = (id: number) =>
@@ -82,7 +106,7 @@ export function EntityPage<T extends { id: number }>({
         }
       />
 
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -92,6 +116,30 @@ export function EntityPage<T extends { id: number }>({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        {config.filters?.map((filter) => (
+          <Select
+            key={filter.key}
+            value={filters[filter.key] ?? null}
+            onValueChange={(value) => {
+              setFilters((prev) => ({ ...prev, [filter.key]: value ?? "" }));
+              setPage(0);
+            }}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder={filter.label}>
+                {filter.options.find((o) => o.value === (filters[filter.key] ?? null))?.label ?? null}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All {filter.label}</SelectItem>
+              {filter.options.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ))}
       </div>
 
       {isError && (

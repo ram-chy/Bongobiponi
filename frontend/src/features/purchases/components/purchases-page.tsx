@@ -38,7 +38,13 @@ const columns: ColumnDef<Purchase>[] = [
     id: "supplier",
     header: "Supplier",
     accessorKey: "supplier",
-    cell: (row) => row.supplier?.company_name ?? "-",
+    cell: (row) => row.supplier?.company_name?.split(" ")[0] ?? "-",
+  },
+  {
+    id: "publisher",
+    header: "Publisher",
+    accessorKey: "publisher",
+    cell: (row) => row.publisher?.name?.split(" ")[0] ?? "-",
   },
   {
     id: "purchase_type",
@@ -73,9 +79,9 @@ const columns: ColumnDef<Purchase>[] = [
     sortable: false,
     cell: (row) => {
       const amount = row.total_amount ?? 0;
-      return new Intl.NumberFormat("en-US", {
+      return new Intl.NumberFormat("en-IN", {
         style: "currency",
-        currency: "USD",
+        currency: "INR",
       }).format(amount);
     },
   },
@@ -116,6 +122,17 @@ const purchaseConfig: EntityConfig<Purchase> = {
   searchPlaceholder: "Search purchases...",
   defaultSort: { id: "created_at", desc: true },
   perPage: 15,
+  filters: [
+    {
+      key: "status",
+      label: "Status",
+      options: [
+        { value: "draft", label: "Draft" },
+        { value: "confirmed", label: "Confirmed" },
+        { value: "cancelled", label: "Cancelled" },
+      ],
+    },
+  ],
 };
 
 export function PurchasesPage() {

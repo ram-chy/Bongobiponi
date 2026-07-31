@@ -17,11 +17,6 @@ return new class extends Migration
             $table->index('state');
         });
 
-        Schema::table('quotations', function (Blueprint $table) {
-            $table->index('status');
-            $table->index('quotation_date');
-        });
-
         Schema::table('orders', function (Blueprint $table) {
             $table->index('status');
             $table->index('order_source');
@@ -60,11 +55,6 @@ return new class extends Migration
             $table->dropIndex(['status']);
             $table->dropIndex(['city']);
             $table->dropIndex(['state']);
-        });
-
-        Schema::table('quotations', function (Blueprint $table) {
-            $table->dropIndex(['status']);
-            $table->dropIndex(['quotation_date']);
         });
 
         Schema::table('orders', function (Blueprint $table) {

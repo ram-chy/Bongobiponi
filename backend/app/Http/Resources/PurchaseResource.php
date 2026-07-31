@@ -15,6 +15,8 @@ class PurchaseResource extends JsonResource
             'purchase_type' => $this->purchase_type,
             'supplier' => new SupplierResource($this->whenLoaded('supplier')),
             'supplier_id' => $this->supplier_id,
+            'publisher' => new PublisherResource($this->whenLoaded('publisher')),
+            'publisher_id' => $this->publisher_id,
             'invoice_no' => $this->invoice_no,
             'invoice_date' => $this->invoice_date?->format('Y-m-d'),
             'purchase_date' => $this->purchase_date?->format('Y-m-d'),

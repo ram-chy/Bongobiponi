@@ -21,7 +21,7 @@ class PaymentTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create(['role_id' => 1]);
         $this->customer = Customer::factory()->create(['created_by' => $this->user->id]);
         $this->invoice = Invoice::factory()->create([
             'customer_id' => $this->customer->id,

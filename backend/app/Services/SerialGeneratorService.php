@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 class SerialGeneratorService
@@ -22,13 +23,19 @@ class SerialGeneratorService
         /** @var Model $model */
         $model = new $this->modelClass;
 
-        $lastSerial = $model->newQuery()
+        $usesSoftDeletes = in_array(SoftDeletes::class, class_uses_recursive($this->modelClass));
+
+        $query = $model->newQuery()
             ->withoutGlobalScopes()
-            ->withTrashed()
             ->where($this->column, 'like', $pattern)
             ->lockForUpdate()
-            ->orderBy('id', 'desc')
-            ->value($this->column);
+            ->orderBy('id', 'desc');
+
+        if ($usesSoftDeletes) {
+            $query->withTrashed();
+        }
+
+        $lastSerial = $query->value($this->column);
 
         if ($lastSerial) {
             $parts = explode('/', $lastSerial);

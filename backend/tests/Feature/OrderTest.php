@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,7 +21,7 @@ class OrderTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create(['role_id' => 1]);
         $this->customer = Customer::factory()->create(['created_by' => $this->user->id]);
     }
 
@@ -185,7 +186,6 @@ class OrderTest extends TestCase
 
     public function test_can_update_order(): void
     {
-        $this->user->update(['role_id' => 1]);
         $order = Order::factory()->create([
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
@@ -201,7 +201,6 @@ class OrderTest extends TestCase
 
     public function test_can_soft_delete_order(): void
     {
-        $this->user->update(['role_id' => 1]);
         $order = Order::factory()->create([
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
@@ -215,7 +214,6 @@ class OrderTest extends TestCase
 
     public function test_can_restore_order(): void
     {
-        $this->user->update(['role_id' => 1]);
         $order = Order::factory()->create([
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
@@ -277,6 +275,110 @@ class OrderTest extends TestCase
 
         $response->assertOk();
         $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type') ?? '');
+    }
+
+    public function test_order_completes_when_fully_delivered_via_delivery_challan(): void
+    {
+        $order = Order::factory()->create([
+            'created_by' => $this->user->id,
+            'customer_id' => $this->customer->id,
+        ]);
+
+        $orderItem = OrderItem::create([
+            'order_id' => $order->id,
+            'source_type' => 'manual',
+            'item_no' => 1,
+            'description' => 'Test Book',
+            'unit' => 'pcs',
+            'ordered_quantity' => 10,
+            'remaining_order_quantity' => 10,
+            'unit_price' => 100,
+            'discount_percentage' => 0,
+            'discount_amount' => 0,
+            'tax_percentage' => 0,
+            'tax_amount' => 0,
+            'line_total' => 1000,
+            'sort_order' => 1,
+        ]);
+
+        $response = $this->postJson('/api/delivery-challans', [
+            'customer_id' => $this->customer->id,
+            'delivery_date' => now()->format('Y-m-d'),
+            'delivery_address' => 'Test Address',
+            'items' => [
+                [
+                    'order_booking_item_id' => $orderItem->id,
+                    'delivered_quantity' => 10,
+                ],
+            ],
+        ], $this->authHeaders());
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'completed',
+        ]);
+
+        $this->assertDatabaseHas('order_items', [
+            'id' => $orderItem->id,
+            'remaining_order_quantity' => 0,
+        ]);
+    }
+
+    public function test_order_reverts_to_draft_when_delivery_challan_is_deleted(): void
+    {
+        $order = Order::factory()->create([
+            'created_by' => $this->user->id,
+            'customer_id' => $this->customer->id,
+        ]);
+
+        $orderItem = OrderItem::create([
+            'order_id' => $order->id,
+            'source_type' => 'manual',
+            'item_no' => 1,
+            'description' => 'Test Book',
+            'unit' => 'pcs',
+            'ordered_quantity' => 10,
+            'remaining_order_quantity' => 10,
+            'unit_price' => 100,
+            'discount_percentage' => 0,
+            'discount_amount' => 0,
+            'tax_percentage' => 0,
+            'tax_amount' => 0,
+            'line_total' => 1000,
+            'sort_order' => 1,
+        ]);
+
+        $deliveryChallanId = $this->postJson('/api/delivery-challans', [
+            'customer_id' => $this->customer->id,
+            'delivery_date' => now()->format('Y-m-d'),
+            'delivery_address' => 'Test Address',
+            'items' => [
+                [
+                    'order_booking_item_id' => $orderItem->id,
+                    'delivered_quantity' => 10,
+                ],
+            ],
+        ], $this->authHeaders())->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'completed',
+        ]);
+
+        $this->deleteJson("/api/delivery-challans/{$deliveryChallanId}", [], $this->authHeaders())
+            ->assertOk();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'draft',
+        ]);
+
+        $this->assertDatabaseHas('order_items', [
+            'id' => $orderItem->id,
+            'remaining_order_quantity' => 10,
+        ]);
     }
 
 }

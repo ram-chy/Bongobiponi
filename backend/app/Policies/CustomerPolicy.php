@@ -8,4 +8,9 @@ use App\Models\User;
 class CustomerPolicy
 {
     use CrudPolicyTrait;
+
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
 }

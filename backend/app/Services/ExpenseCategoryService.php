@@ -36,9 +36,13 @@ class ExpenseCategoryService
         $category->delete();
     }
 
-    public function restore(int $id): ExpenseCategory
+    public function findTrashed(int $id): ExpenseCategory
     {
-        $category = ExpenseCategory::onlyTrashed()->findOrFail($id);
+        return ExpenseCategory::onlyTrashed()->findOrFail($id);
+    }
+
+    public function restore(ExpenseCategory $category): ExpenseCategory
+    {
         $category->restore();
 
         return $category->load('creator');

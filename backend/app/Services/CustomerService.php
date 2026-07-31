@@ -12,6 +12,12 @@ class CustomerService
     {
         $query = Customer::query()->with('creator');
 
+        if ($user = auth()->user()) {
+            if (! $user->hasRole(['admin', 'manager'])) {
+                $query->where('created_by', $user->id);
+            }
+        }
+
         $query = $this->applySearch($query, $filters['search'] ?? null);
         $query = $this->applyFilters($query, $filters);
         $query = $this->applySorting($query, $filters['sort'] ?? null, $filters['direction'] ?? null);

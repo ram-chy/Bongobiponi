@@ -53,13 +53,12 @@ class DeliveryChallanService
 
             $this->activityLogService->logCreate('delivery_challan', 'delivery_challan', $deliveryChallan->id, $data);
 
-            $this->autoCompleteAffectedOrders($deliveryChallan);
+            $this->recalculateAffectedOrderStatuses($deliveryChallan);
 
             return $deliveryChallan->load([
                 'customer',
                 'creator',
                 'items.orderBooking',
-                'items.quotation',
             ]);
         });
     }
@@ -107,13 +106,12 @@ class DeliveryChallanService
                 $this->syncItems($deliveryChallan, $preparedItems);
             }
 
-            $this->autoCompleteAffectedOrders($deliveryChallan);
+            $this->recalculateAffectedOrderStatuses($deliveryChallan);
 
             return $deliveryChallan->load([
                 'customer',
                 'creator',
                 'items.orderBooking',
-                'items.quotation',
             ]);
         });
     }
@@ -139,6 +137,8 @@ class DeliveryChallanService
         DB::transaction(function () use ($deliveryChallan) {
             $this->restoreOrderQuantities($deliveryChallan);
 
+            $this->recalculateAffectedOrderStatuses($deliveryChallan);
+
             $this->activityLogService->logDelete('delivery_challan', 'delivery_challan', $deliveryChallan->id);
 
             $deliveryChallan->delete();
@@ -155,7 +155,6 @@ class DeliveryChallanService
             'customer',
             'creator',
             'items.orderBooking',
-            'items.quotation',
         ]);
     }
 
@@ -183,7 +182,7 @@ class DeliveryChallanService
             if (! empty($item['order_booking_item_id'])) {
                 $orderItem = $this->sourceDocumentOwnership->orderItem($item['order_booking_item_id']);
                 $this->sourceDocumentOwnership->ensureMatchesCustomer($customerId, $orderItem->order);
-                $orderItem->loadMissing(['order', 'quotationItem']);
+                $orderItem->loadMissing(['order']);
 
                 $lockedOrderItem = OrderItem::lockForUpdate()->findOrFail($orderItem->id);
                 $availableQuantity = (float) $lockedOrderItem->remaining_order_quantity;
@@ -196,9 +195,7 @@ class DeliveryChallanService
                 $prepared[] = [
                     'order_booking_id' => $orderItem->order_id,
                     'order_booking_item_id' => $orderItem->id,
-                    'quotation_id' => $orderItem->quotation_item_id
-                        ? optional($orderItem->quotationItem)->quotation_id
-                        : null,
+                    'quotation_id' => null,
                     'quotation_item_id' => $orderItem->quotation_item_id,
                     'item_description' => $item['description'] ?? $orderItem->description,
                     'unit' => $item['unit'] ?? $orderItem->unit,
@@ -246,7 +243,7 @@ class DeliveryChallanService
         ];
     }
 
-    private function autoCompleteAffectedOrders(DeliveryChallan $deliveryChallan): void
+    private function recalculateAffectedOrderStatuses(DeliveryChallan $deliveryChallan): void
     {
         $deliveryChallan->load('items');
         $orderBookingIds = $deliveryChallan->items->pluck('order_booking_id')->unique()->filter();
@@ -254,7 +251,7 @@ class DeliveryChallanService
         foreach ($orderBookingIds as $orderId) {
             $order = Order::find($orderId);
             if ($order) {
-                $this->orderService->autoCompleteIfAllDelivered($order, collect());
+                $this->orderService->recalculateStatus($order);
             }
         }
     }

@@ -14,10 +14,8 @@ class AuthController extends Controller
 {
     public function register(RegisterRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $data['role_id'] = Role::where('slug', 'regular_user')->value('id');
-
-        $user = User::create($data);
+        $user = User::create($request->validated());
+        $user->forceFill(['role_id' => Role::where('slug', 'regular_user')->value('id')])->save();
 
         $token = JWTHelper::generateToken($user);
 

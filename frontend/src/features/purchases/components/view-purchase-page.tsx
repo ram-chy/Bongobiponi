@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
 
 const months = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -54,6 +55,8 @@ export function ViewPurchasePage({ id }: { id: number }) {
   const { data: purchase, isLoading } = usePurchase(id);
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   const handleAction = async (
     action: "confirm" | "cancel",
@@ -126,11 +129,7 @@ export function ViewPurchasePage({ id }: { id: number }) {
                   variant="default"
                   className="gap-1.5 bg-blue-600 hover:bg-blue-600/80"
                   disabled={actionLoading === "confirm"}
-                  onClick={() =>
-                    handleAction("confirm", () =>
-                      purchaseService.confirm(id)
-                    )
-                  }
+                  onClick={() => setConfirmDialogOpen(true)}
                 >
                   <CheckCircle className="size-4" />
                   Confirm
@@ -139,11 +138,7 @@ export function ViewPurchasePage({ id }: { id: number }) {
                   variant="destructive"
                   className="gap-1.5"
                   disabled={actionLoading === "cancel"}
-                  onClick={() =>
-                    handleAction("cancel", () =>
-                      purchaseService.cancel(id)
-                    )
-                  }
+                  onClick={() => setCancelDialogOpen(true)}
                 >
                   <XCircle className="size-4" />
                   Cancel
@@ -169,6 +164,12 @@ export function ViewPurchasePage({ id }: { id: number }) {
                 <p className="text-sm text-muted-foreground">Supplier</p>
                 <p className="font-medium">
                   {purchase.supplier?.company_name ?? "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Publisher</p>
+                <p className="font-medium">
+                  {purchase.publisher?.name ?? "-"}
                 </p>
               </div>
               <div>
@@ -257,9 +258,9 @@ export function ViewPurchasePage({ id }: { id: number }) {
               <div className="flex justify-between gap-4 border-t pt-1">
                 <span className="font-semibold">Grand Total</span>
                 <span className="font-semibold">
-                  {new Intl.NumberFormat("en-US", {
+                  {new Intl.NumberFormat("en-IN", {
                     style: "currency",
-                    currency: "USD",
+                    currency: "INR",
                   }).format(purchase.total_amount ?? 0)}
                 </span>
               </div>
@@ -319,6 +320,34 @@ export function ViewPurchasePage({ id }: { id: number }) {
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        title="Confirm Purchase"
+        description="This will add the purchased items to inventory stock. This action cannot be undone."
+        confirmLabel="Confirm Purchase"
+        onConfirm={() => {
+          setConfirmDialogOpen(false);
+          handleAction("confirm", () => purchaseService.confirm(id));
+        }}
+        isLoading={actionLoading === "confirm"}
+        variant="default"
+      />
+
+      <ConfirmDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        title="Cancel Purchase"
+        description="This will cancel the purchase. If the purchase was confirmed, inventory will be reversed. This action cannot be undone."
+        confirmLabel="Cancel Purchase"
+        onConfirm={() => {
+          setCancelDialogOpen(false);
+          handleAction("cancel", () => purchaseService.cancel(id));
+        }}
+        isLoading={actionLoading === "cancel"}
+        variant="destructive"
+      />
     </div>
   );
 }
