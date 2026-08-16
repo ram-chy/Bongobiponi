@@ -55,10 +55,7 @@ class InvoiceController extends Controller
             'updater',
             'items.deliveryChallan',
             'items.deliveryChallanItem',
-            'items.salesOrder',
-            'items.salesOrderItem',
             'items.orderBooking',
-            'items.quotation',
         ]);
 
         return $this->successResponse(new InvoiceResource($invoice), 'Invoice retrieved successfully');

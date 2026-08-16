@@ -94,15 +94,18 @@ export function EntityPage<T extends { id: number }>({
         title={config.title}
         description={config.description}
         actions={
-          config.createRoute && (
-            <Link
-              href={config.createRoute}
-              className={cn(buttonVariants({ variant: "default" }), "gap-1.5")}
-            >
-              <Plus className="size-4" />
-              New
-            </Link>
-          )
+          <div className="flex items-center gap-2">
+            {config.headerActions}
+            {config.createRoute && (
+              <Link
+                href={config.createRoute}
+                className={cn(buttonVariants({ variant: "default" }), "gap-1.5")}
+              >
+                <Plus className="size-4" />
+                New
+              </Link>
+            )}
+          </div>
         }
       />
 

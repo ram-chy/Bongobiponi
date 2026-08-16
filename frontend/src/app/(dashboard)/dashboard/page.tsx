@@ -1,8 +1,5 @@
-export default function DashboardPage() {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-      <p className="text-muted-foreground">Welcome to the ERP system.</p>
-    </div>
-  );
+import { DashboardPage } from "@/features/dashboard/components/dashboard-page";
+
+export default function DashboardPageRoute() {
+  return <DashboardPage />;
 }

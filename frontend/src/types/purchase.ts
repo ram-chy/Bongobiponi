@@ -10,6 +10,8 @@ export interface PurchaseItem {
   ordered_quantity: number;
   received_quantity: number;
   purchase_price: number;
+  printed_price: number | null;
+  discount_percentage: number | null;
   total: number;
   remarks: string | null;
   created_at: string;

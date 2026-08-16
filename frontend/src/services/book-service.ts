@@ -15,6 +15,11 @@ export const bookService = {
 
   delete: (id: number) => apiClient.delete(`/books/${id}`),
 
+  exportXlsx: () =>
+    apiClient.get("/books/export", {
+      responseType: "blob",
+    }),
+
   uploadCover: (file: File) => {
     const formData = new FormData();
     formData.append("cover_image", file);

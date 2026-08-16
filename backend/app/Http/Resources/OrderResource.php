@@ -23,6 +23,7 @@ class OrderResource extends JsonResource
             'currency' => $this->currency,
             'exchange_rate' => $this->exchange_rate,
             'status' => $this->status,
+            'pre_book' => (bool) $this->pre_book,
             'reference_notes' => $this->reference_notes,
             'notes' => $this->notes,
             'created_by' => $this->creator?->only(['id', 'first_name', 'last_name', 'email']),
@@ -31,6 +32,7 @@ class OrderResource extends JsonResource
             'confirmed_at' => $this->confirmed_at,
             'pdf_generated_at' => $this->pdf_generated_at,
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
+            'comments' => OrderCommentResource::collection($this->whenLoaded('comments')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -25,6 +25,15 @@ class InventoryRepository
         return Stock::where('book_id', $bookId)->first();
     }
 
+    public function getStocksByBooks(array $bookIds): \Illuminate\Database\Eloquent\Collection
+    {
+        if (empty($bookIds)) {
+            return Stock::newModelInstance()->newCollection();
+        }
+
+        return Stock::whereIn('book_id', $bookIds)->get();
+    }
+
     public function getOrCreateStock(int $bookId, bool $lock = false): Stock
     {
         $query = Stock::where('book_id', $bookId);

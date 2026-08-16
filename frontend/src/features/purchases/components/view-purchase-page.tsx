@@ -51,7 +51,7 @@ const purchaseTypeLabels: Record<string, string> = {
   manual: "Manual",
 };
 
-export function ViewPurchasePage({ id }: { id: number }) {
+export function ViewPurchasePage({ id, fromOrderId }: { id: number; fromOrderId?: number }) {
   const { data: purchase, isLoading } = usePurchase(id);
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -67,6 +67,11 @@ export function ViewPurchasePage({ id }: { id: number }) {
       await fn();
       queryClient.invalidateQueries({ queryKey: ["/purchases"] });
       queryClient.invalidateQueries({ queryKey: ["/purchases", id] });
+      if (fromOrderId) {
+        queryClient.invalidateQueries({ queryKey: ["/orders", fromOrderId] });
+        queryClient.invalidateQueries({ queryKey: ["/orders", fromOrderId, "availability"] });
+        queryClient.invalidateQueries({ queryKey: ["/orders", fromOrderId, "status-history"] });
+      }
       toast.success(
         action === "confirm"
           ? "Purchase confirmed"
@@ -113,6 +118,15 @@ export function ViewPurchasePage({ id }: { id: number }) {
         description="Purchase details"
         actions={
           <div className="flex items-center gap-2">
+            {fromOrderId && (
+              <Link
+                href={`/orders/${fromOrderId}`}
+                className={cn(buttonVariants({ variant: "outline" }), "gap-1.5")}
+              >
+                <ArrowLeft className="size-4" />
+                Return to Order
+              </Link>
+            )}
             {isDraft && (
               <>
                 <Link
@@ -228,6 +242,8 @@ export function ViewPurchasePage({ id }: { id: number }) {
                     <TableHead className="text-right">Ordered Qty</TableHead>
                     <TableHead className="text-right">Received Qty</TableHead>
                     <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Printed Price</TableHead>
+                    <TableHead className="text-right">Discount %</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Remarks</TableHead>
                   </TableRow>
@@ -244,6 +260,16 @@ export function ViewPurchasePage({ id }: { id: number }) {
                       </TableCell>
                       <TableCell className="text-right">
                         {Number(item.purchase_price).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.printed_price !== null && item.printed_price !== undefined
+                          ? Number(item.printed_price).toFixed(2)
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.discount_percentage !== null && item.discount_percentage !== undefined
+                          ? `${Number(item.discount_percentage).toFixed(2)}%`
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {Number(item.total).toFixed(2)}

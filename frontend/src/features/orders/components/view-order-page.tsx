@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { PageBreadcrumb } from "@/components/breadcrumb/page-breadcrumb";
 import { PageHeader } from "@/components/page-header/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -14,6 +13,14 @@ import {
 import { ArrowLeft, Pencil, Download, Loader2 } from "lucide-react";
 import { useOrder } from "@/features/orders/hooks/use-order";
 import { useOrderDownload } from "@/features/orders/hooks/use-order-download";
+import { useOrderAvailability } from "@/features/orders/hooks/use-order-availability";
+import { OrderStatusBadge } from "@/features/orders/components/order-status-badge";
+import { OrderAvailability } from "@/features/orders/components/order-availability";
+import { OrderStatusActions } from "@/features/orders/components/order-status-actions";
+import { OrderProcurement } from "@/features/orders/components/order-procurement";
+import { OrderStatusTimeline } from "@/features/orders/components/order-status-timeline";
+import { OrderReservation } from "@/features/orders/components/order-reservation";
+import { OrderComments } from "@/features/orders/components/order-comments";
 
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function fmtDate(d: string | undefined | null): string {
@@ -23,13 +30,6 @@ function fmtDate(d: string | undefined | null): string {
   return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
 }
 
-const statusVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  draft: "default",
-  confirmed: "secondary",
-  cancelled: "destructive",
-  completed: "default",
-};
-
 interface ViewOrderPageProps {
   id: number;
 }
@@ -38,6 +38,7 @@ export function ViewOrderPage({ id }: ViewOrderPageProps) {
   const router = useRouter();
   const { data: order, isLoading } = useOrder(id);
   const downloadMutation = useOrderDownload();
+  const { data: availability, isLoading: availabilityLoading } = useOrderAvailability(id);
 
   if (isLoading) {
     return (
@@ -154,16 +155,7 @@ export function ViewOrderPage({ id }: ViewOrderPageProps) {
             </div>
             <div>
               <span className="text-muted-foreground">Status: </span>
-              <Badge
-                variant={statusVariants[order.status] ?? "default"}
-                className={
-                  order.status === "completed"
-                    ? "bg-emerald-600 hover:bg-emerald-600/80"
-                    : undefined
-                }
-              >
-                {order.status.toUpperCase()}
-              </Badge>
+              <OrderStatusBadge status={order.status} />
             </div>
             {order.reference_notes && (
               <div className="sm:col-span-2">
@@ -173,6 +165,34 @@ export function ViewOrderPage({ id }: ViewOrderPageProps) {
             )}
           </CardContent>
         </Card>
+
+        <OrderAvailability id={id} />
+
+        <OrderReservation orderId={id} />
+
+        <OrderProcurement
+          orderId={id}
+          status={order.status}
+          availability={availability}
+          availabilityLoading={availabilityLoading}
+        />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Fulfillment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <OrderStatusActions
+              id={id}
+              status={order.status}
+              availabilityStatus={availability?.status}
+            />
+          </CardContent>
+        </Card>
+
+        <OrderStatusTimeline id={id} status={order.status} />
+
+        <OrderComments orderId={id} />
 
         <Card>
           <CardHeader>

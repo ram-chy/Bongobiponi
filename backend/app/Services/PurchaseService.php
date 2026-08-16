@@ -12,6 +12,7 @@ class PurchaseService
     public function __construct(
         private readonly PurchaseSerialGeneratorService $serialGenerator,
         private readonly InventoryService $inventoryService,
+        private readonly PurchaseOrderSynchronizationService $orderSyncService,
     ) {}
 
     public function list(array $filters): \Illuminate\Pagination\LengthAwarePaginator
@@ -79,6 +80,8 @@ class PurchaseService
             $purchase->update(['status' => 'confirmed', 'updated_by' => auth()->id()]);
 
             $this->increaseStockForPurchase($purchase);
+
+            $this->orderSyncService->syncAfterPurchase($purchase);
 
             return $purchase->load(['supplier', 'publisher', 'creator', 'items.book']);
         });

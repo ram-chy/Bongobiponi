@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,8 +31,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Trash2, BookPlus } from "lucide-react";
 import { usePurchaseForm } from "@/features/purchases/hooks/use-purchase-form";
+import { AddBookDialog } from "@/features/purchases/components/add-book-dialog";
 import { supplierService } from "@/services/supplier-service";
 import { publisherService } from "@/services/publisher-service";
 import { bookService } from "@/services/book-service";
@@ -41,7 +42,7 @@ import type { Purchase } from "@/types/purchase";
 
 const purchaseSchema = z.object({
   supplier_id: z.string().min(1, "Supplier is required"),
-  publisher_id: z.string().optional().or(z.literal("")),
+  publisher_id: z.string().min(1, "Publisher is required"),
   invoice_no: z.string().optional().or(z.literal("")),
   invoice_date: z.string().optional().or(z.literal("")),
   purchase_date: z.string().min(1, "Purchase date is required"),
@@ -59,6 +60,14 @@ const purchaseSchema = z.object({
           (val) => parseFloat(val) >= 0,
           "Price must not be negative"
         ),
+        printed_price: z.string().min(1, "Printed price is required").refine(
+          (val) => parseFloat(val) >= 0,
+          "Printed price must not be negative"
+        ),
+        discount_percentage: z.string().min(1, "Discount is required").refine(
+          (val) => parseFloat(val) >= 0 && parseFloat(val) <= 100,
+          "Discount must be between 0 and 100"
+        ),
         remarks: z.string().optional().or(z.literal("")),
       })
     )
@@ -70,11 +79,18 @@ type PurchaseFormData = z.infer<typeof purchaseSchema>;
 interface PurchaseFormProps {
   defaultValues?: Partial<Purchase>;
   id?: number;
+  onCreated?: (purchaseId: number) => void;
+  backHref?: string;
+  backLabel?: string;
 }
 
-export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
+export function PurchaseForm({ defaultValues, id, onCreated, backHref, backLabel }: PurchaseFormProps) {
   const router = useRouter();
-  const purchaseMutation = usePurchaseForm({ id });
+  const queryClient = useQueryClient();
+  const purchaseMutation = usePurchaseForm({ id, onCreated });
+  const backPath = backHref ?? "/purchases";
+  const backText = backLabel ?? "Back to Purchases";
+  const [addBookOpen, setAddBookOpen] = useState(false);
 
   const { data: suppliersData, isLoading: suppliersLoading } = useQuery({
     queryKey: ["/suppliers"],
@@ -127,9 +143,11 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
           ordered_quantity: item.ordered_quantity?.toString() ?? "",
           received_quantity: item.received_quantity.toString(),
           purchase_price: item.purchase_price.toString(),
+          printed_price: item.printed_price?.toString() ?? "",
+          discount_percentage: item.discount_percentage?.toString() ?? "",
           remarks: item.remarks ?? "",
         })) ?? [
-          { book_id: "", ordered_quantity: "", received_quantity: "", purchase_price: "", remarks: "" },
+          { book_id: "", ordered_quantity: "", received_quantity: "", purchase_price: "", printed_price: "", discount_percentage: "", remarks: "" },
         ],
     },
   });
@@ -142,15 +160,11 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
   const items = useWatch({ control, name: "items" });
 
   const totals = useMemo(() => {
-    let subtotal = 0;
-    let totalDiscount = 0;
-    let totalTax = 0;
-
-    (items ?? []).forEach((item) => {
+    const subtotal = (items ?? []).reduce((sum, item) => {
       const qty = parseFloat(item.received_quantity) || 0;
       const price = parseFloat(item.purchase_price) || 0;
-      subtotal += qty * price;
-    });
+      return sum + qty * price;
+    }, 0);
 
     return {
       subtotal: subtotal.toFixed(2),
@@ -161,7 +175,7 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
   const onSubmit = async (data: PurchaseFormData) => {
     const payload = {
       supplier_id: parseInt(data.supplier_id),
-      publisher_id: data.publisher_id ? parseInt(data.publisher_id) : null,
+      publisher_id: parseInt(data.publisher_id),
       invoice_no: data.invoice_no || null,
       invoice_date: data.invoice_date || null,
       purchase_date: data.purchase_date,
@@ -171,6 +185,8 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
         ordered_quantity: parseInt(item.ordered_quantity || "0") || 0,
         received_quantity: parseInt(item.received_quantity),
         purchase_price: parseFloat(item.purchase_price),
+        printed_price: parseFloat(item.printed_price),
+        discount_percentage: parseFloat(item.discount_percentage),
         remarks: item.remarks || null,
       })),
     };
@@ -206,18 +222,47 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
     (p: { id: number; name: string }) => p.id.toString() === selectedPublisherId
   );
 
+  const handleBookCreated = (book: { id: number; title: string; purchase_price: number }) => {
+    queryClient.invalidateQueries({ queryKey: ["/books"] });
+
+    const fieldsWithValue = fields.length;
+    let targetIndex = fields.findIndex((_, i) => !watch(`items.${i}.book_id`));
+
+    if (targetIndex === -1) {
+      append({
+        book_id: String(book.id),
+        ordered_quantity: "",
+        received_quantity: "",
+        purchase_price: book.purchase_price ? String(book.purchase_price) : "",
+        printed_price: "",
+        discount_percentage: "",
+        remarks: "",
+      });
+      targetIndex = fieldsWithValue;
+    }
+
+    setValue(`items.${targetIndex}.book_id`, String(book.id));
+    if (!watch(`items.${targetIndex}.purchase_price`)) {
+      setValue(
+        `items.${targetIndex}.purchase_price`,
+        book.purchase_price ? String(book.purchase_price) : ""
+      );
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="mb-6">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => router.push("/purchases")}
-        >
-          <ArrowLeft className="size-4" />
-          Back to Purchases
-        </Button>
-      </div>
+    <>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="mb-6">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => router.push(backPath)}
+          >
+            <ArrowLeft className="size-4" />
+            {backText}
+          </Button>
+        </div>
 
       <div className="space-y-6">
         <Card>
@@ -252,7 +297,7 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="publisher_id">Publisher</Label>
+              <Label htmlFor="publisher_id">Publisher *</Label>
               <Select
                 value={watch("publisher_id") || null}
                 onValueChange={(value) => setValue("publisher_id", String(value ?? ""))}
@@ -307,23 +352,36 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Items</CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                append({
-                  book_id: "",
-                  ordered_quantity: "",
-                  received_quantity: "",
-                  purchase_price: "",
-                  remarks: "",
-                })
-              }
-            >
-              <Plus className="size-4" />
-              Add Item
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAddBookOpen(true)}
+              >
+                <BookPlus className="size-4" />
+                Add Book
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  append({
+                    book_id: "",
+                    ordered_quantity: "",
+                    received_quantity: "",
+                    purchase_price: "",
+                    printed_price: "",
+                    discount_percentage: "",
+                    remarks: "",
+                  })
+                }
+              >
+                <Plus className="size-4" />
+                Add Item
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {errors.items && typeof errors.items.message === "string" && (
@@ -339,6 +397,8 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
                     <TableHead className="w-[80px]">Ordered Qty</TableHead>
                     <TableHead className="w-[100px]">Received Qty *</TableHead>
                     <TableHead className="w-[110px]">Price *</TableHead>
+                    <TableHead className="w-[110px]">Printed Price *</TableHead>
+                    <TableHead className="w-[100px]">Discount % *</TableHead>
                     <TableHead className="w-[110px] text-right">Line Total</TableHead>
                     <TableHead>Remarks</TableHead>
                     <TableHead className="w-[50px]" />
@@ -429,6 +489,33 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
                           </p>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          {...register(`items.${index}.printed_price`)}
+                        />
+                        {errors.items?.[index]?.printed_price && (
+                          <p className="text-sm text-destructive mt-1">
+                            {errors.items[index]?.printed_price?.message}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          {...register(`items.${index}.discount_percentage`)}
+                        />
+                        {errors.items?.[index]?.discount_percentage && (
+                          <p className="text-sm text-destructive mt-1">
+                            {errors.items[index]?.discount_percentage?.message}
+                          </p>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right font-medium">
                         {lineTotal}
                       </TableCell>
@@ -473,7 +560,7 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push("/purchases")}
+            onClick={() => router.push(backPath)}
           >
             Cancel
           </Button>
@@ -483,6 +570,14 @@ export function PurchaseForm({ defaultValues, id }: PurchaseFormProps) {
           </Button>
         </div>
       </div>
-    </form>
+      </form>
+
+      <AddBookDialog
+        open={addBookOpen}
+        onOpenChange={setAddBookOpen}
+        publishers={publishers}
+        onCreated={handleBookCreated}
+      />
+    </>
   );
 }

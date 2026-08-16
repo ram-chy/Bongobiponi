@@ -44,10 +44,10 @@ export function EditOrderPage({ id }: EditOrderPageProps) {
                   : "",
                 reference_notes: order.reference_notes ?? "",
                 notes: order.notes ?? "",
+                pre_book: order.pre_book ?? false,
                 items: order.items.map((item) => ({
                   source_type: item.source_type,
-                  book_id: "",
-                  description: item.description,
+                  book_id: item.book_id ? String(item.book_id) : "",                  description: item.description,
                   unit: item.unit,
                   ordered_quantity: String(item.ordered_quantity ?? ""),
                   unit_price: String(item.unit_price ?? ""),

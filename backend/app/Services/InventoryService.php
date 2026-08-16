@@ -13,6 +13,7 @@ class InventoryService
     public function __construct(
         private readonly InventoryRepository $repository,
         private readonly InventorySerialGeneratorService $serialGenerator,
+        private readonly \App\Services\OrderStockReservationService $reservationService,
     ) {}
 
     public function increaseStock(
@@ -66,12 +67,13 @@ class InventoryService
         string $transactionDate,
         ?string $remarks = null,
         ?int $createdBy = null,
+        ?int $reservationOrderId = null,
     ): InventoryTransaction {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Quantity must be positive.');
         }
 
-        return DB::transaction(function () use ($bookId, $quantity, $type, $referenceType, $referenceId, $transactionDate, $remarks, $createdBy) {
+        return DB::transaction(function () use ($bookId, $quantity, $type, $referenceType, $referenceId, $transactionDate, $remarks, $createdBy, $reservationOrderId) {
             $stock = $this->repository->getOrCreateStock($bookId, lock: true);
 
             $this->validateStock($stock, $quantity);
@@ -96,6 +98,18 @@ class InventoryService
                 'current_quantity' => $newBalance,
                 'last_transaction_id' => $transaction->id,
             ]);
+
+            // Consume reservations only when physical stock leaves the warehouse
+            // as a SALE (delivery). Stock-outs for damage/adjustments reduce
+            // physical stock but keep customer commitments intact.
+            if ($type === InventoryTransactionType::SALE) {
+                $this->reservationService->consumeForBook(
+                    $bookId,
+                    $quantity,
+                    $transaction->id,
+                    $reservationOrderId,
+                );
+            }
 
             return $transaction;
         });
@@ -182,6 +196,13 @@ class InventoryService
                 'last_transaction_id' => $reversal->id,
             ]);
 
+            if ($transaction->transaction_type === InventoryTransactionType::SALE) {
+                $this->reservationService->restoreConsumedForTransaction(
+                    $transaction->id,
+                    $transaction->quantity_out,
+                );
+            }
+
             return $reversal;
         });
     }
@@ -189,6 +210,11 @@ class InventoryService
     public function getCurrentStock(int $bookId): ?Stock
     {
         return $this->repository->getStock($bookId);
+    }
+
+    public function getCurrentStockForBooks(array $bookIds): \Illuminate\Database\Eloquent\Collection
+    {
+        return $this->repository->getStocksByBooks($bookIds);
     }
 
     public function recalculateStock(int $bookId): Stock

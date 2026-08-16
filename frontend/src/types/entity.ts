@@ -56,6 +56,7 @@ export interface EntityConfig<T> {
   defaultSort?: ColumnSort;
   perPage?: number;
   filters?: FilterDef[];
+  headerActions?: ReactNode;
 }
 
 export interface RowAction<T> {

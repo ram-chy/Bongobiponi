@@ -1,5 +1,14 @@
 import apiClient from "@/lib/axios";
-import type { Order, OrderFormData } from "@/types/order";
+import type {
+  Order,
+  OrderAvailability,
+  OrderComment,
+  OrderFormData,
+  OrderReservation,
+  OrderStatus,
+  OrderStatusHistory,
+  OrderStatusTransitionResponse,
+} from "@/types/order";
 
 export const orderService = {
   list: (params?: Record<string, unknown>) =>
@@ -16,6 +25,28 @@ export const orderService = {
 
   delete: (id: number) =>
     apiClient.delete(`/orders/${id}`),
+
+  getAvailability: (id: number) =>
+    apiClient.get<{ data: OrderAvailability }>(`/orders/${id}/availability`),
+
+  getStatusHistory: (id: number) =>
+    apiClient.get<{ data: OrderStatusHistory[] }>(`/orders/${id}/status-history`),
+
+  getReservations: (id: number) =>
+    apiClient.get<{ data: OrderReservation[] }>(`/orders/${id}/reservations`),
+
+  getComments: (id: number) =>
+    apiClient.get<{ data: OrderComment[] }>(`/orders/${id}/comments`),
+
+  createComment: (id: number, comment: string) =>
+    apiClient.post<{ data: OrderComment }>(`/orders/${id}/comments`, {
+      comment,
+    }),
+
+  updateStatus: (id: number, status: OrderStatus) =>
+    apiClient.post<OrderStatusTransitionResponse>(`/orders/${id}/status`, {
+      status,
+    }),
 
   downloadPdf: (id: number) =>
     apiClient.get(`/orders/${id}/download-pdf`, {

@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PasswordResetController;
@@ -35,6 +36,8 @@ Route::middleware(['auth:api', 'token.version', 'throttle:api'])->group(function
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
 
+    Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+
     Route::middleware('role.admin')->group(function () {
         Route::get('users', [UserController::class, 'index']);
         Route::get('users/{id}', [UserController::class, 'show']);
@@ -56,6 +59,7 @@ Route::middleware(['auth:api', 'token.version', 'throttle:api'])->group(function
     Route::apiResource('categories', CategoryController::class);
     Route::post('categories/{id}/restore', [CategoryController::class, 'restore']);
 
+    Route::get('books/export', [BookController::class, 'export']);
     Route::apiResource('books', BookController::class);
     Route::post('books/{id}/restore', [BookController::class, 'restore']);
     Route::post('books/upload-cover', [BookController::class, 'uploadCover']);
@@ -77,6 +81,12 @@ Route::middleware(['auth:api', 'token.version', 'throttle:api'])->group(function
     Route::apiResource('orders', OrderController::class);
     Route::post('orders/{id}/restore', [OrderController::class, 'restore']);
     Route::get('orders/{order}/download-pdf', [OrderController::class, 'downloadPDF']);
+    Route::post('orders/{order}/status', [OrderController::class, 'transitionStatus']);
+    Route::get('orders/{order}/availability', [OrderController::class, 'availability']);
+    Route::get('orders/{order}/status-history', [OrderController::class, 'statusHistory']);
+    Route::get('orders/{order}/reservations', [OrderController::class, 'reservations']);
+    Route::get('orders/{order}/comments', [OrderController::class, 'comments']);
+    Route::post('orders/{order}/comments', [OrderController::class, 'storeComment']);
 
     Route::apiResource('delivery-challans', DeliveryChallanController::class);
     Route::post('delivery-challans/{id}/restore', [DeliveryChallanController::class, 'restore']);

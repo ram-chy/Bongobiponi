@@ -57,6 +57,7 @@ const orderSchema = z.object({
   expected_delivery_date: z.string().optional().or(z.literal("")),
   reference_notes: z.string().optional().or(z.literal("")),
   notes: z.string().optional().or(z.literal("")),
+  pre_book: z.boolean().optional(),
   items: z.array(itemSchema).min(1, "At least one item is required"),
 });
 
@@ -96,6 +97,7 @@ export function OrderForm({
       expected_delivery_date: "",
       reference_notes: "",
       notes: "",
+      pre_book: false,
       items: [
         {
           source_type: "manual",
@@ -200,7 +202,9 @@ export function OrderForm({
     try {
       const payload = {
         ...data,
+        pre_book: data.pre_book ?? false,
         items: data.items.map((item) => ({
+          book_id: item.book_id || null,
           source_type: item.source_type,
           description: item.description,
           unit: item.unit,
@@ -401,6 +405,19 @@ export function OrderForm({
                 {...register("notes")}
                 placeholder="Additional notes..."
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                id="pre_book"
+                type="checkbox"
+                className="size-4 rounded border-muted-foreground"
+                checked={watch("pre_book") ?? false}
+                onChange={(e) => setValue("pre_book", e.target.checked)}
+              />
+              <Label htmlFor="pre_book" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Pre-book order (books not yet in stock will be fulfilled when available)
+              </Label>
             </div>
           </CardContent>
         </Card>

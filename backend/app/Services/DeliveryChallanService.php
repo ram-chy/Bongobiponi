@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\InventoryTransactionType;
 use App\Models\DeliveryChallan;
+use App\Models\DeliveryChallanItem;
+use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,6 +21,7 @@ class DeliveryChallanService
         private readonly OrderService $orderService,
         private readonly ActivityLogService $activityLogService,
         private readonly SourceDocumentOwnershipService $sourceDocumentOwnership,
+        private readonly InventoryService $inventoryService,
     ) {}
 
     public function list(array $filters): LengthAwarePaginator
@@ -274,8 +278,40 @@ class DeliveryChallanService
                     'quantity' => $item['delivered_quantity'],
                     'created_by' => auth()->id(),
                 ]);
+
+                $this->debitInventoryForDelivery($deliveryChallan, $dcItem, $lockedOrderItem);
             }
         }
+    }
+
+    /**
+     * Debit physical stock for a delivered order item.
+     *
+     * The sales flow deducts inventory only when goods physically leave via a
+     * Delivery Challan (the fulfillment/delivery document). A SALE inventory
+     * transaction is recorded and active FIFO reservations are consumed, which
+     * keeps the stock ledger and availability accurate.
+     */
+    private function debitInventoryForDelivery(DeliveryChallan $deliveryChallan, DeliveryChallanItem $dcItem, OrderItem $orderItem): void
+    {
+        $bookId = $orderItem->book_id;
+        $quantity = (int) $dcItem->delivered_quantity;
+
+        if ($bookId === null || $quantity <= 0) {
+            return;
+        }
+
+        $this->inventoryService->decreaseStock(
+            bookId: (int) $bookId,
+            quantity: $quantity,
+            type: InventoryTransactionType::SALE,
+            referenceType: 'delivery_challan',
+            referenceId: $dcItem->id,
+            transactionDate: $deliveryChallan->delivery_date?->format('Y-m-d') ?? now()->format('Y-m-d'),
+            remarks: 'Stock delivered via delivery challan #'.$deliveryChallan->serial,
+            createdBy: auth()->id(),
+            reservationOrderId: $orderItem->order_id,
+        );
     }
 
     private function restoreOrderQuantities(DeliveryChallan $deliveryChallan): void
@@ -291,7 +327,31 @@ class DeliveryChallanService
                     ->where('module', 'delivery_challan')
                     ->where('reference_id', $dcItem->id)
                     ->delete();
+
+                $this->reverseInventoryForDelivery($dcItem);
             }
+        }
+    }
+
+    /**
+     * Reverse the SALE inventory transaction that was created for a delivery
+     * challan item when the challan is deleted or its items are replaced.
+     */
+    private function reverseInventoryForDelivery(DeliveryChallanItem $dcItem): void
+    {
+        $orderItem = $dcItem->orderBookingItem;
+
+        if ($orderItem === null || $orderItem->book_id === null || (int) $dcItem->delivered_quantity <= 0) {
+            return;
+        }
+
+        $saleTransaction = InventoryTransaction::where('reference_type', 'delivery_challan')
+            ->where('reference_id', $dcItem->id)
+            ->where('transaction_type', InventoryTransactionType::SALE->value)
+            ->first();
+
+        if ($saleTransaction) {
+            $this->inventoryService->reverseTransaction($saleTransaction);
         }
     }
 

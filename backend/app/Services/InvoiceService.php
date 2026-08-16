@@ -58,7 +58,6 @@ class InvoiceService
                 'items.deliveryChallan',
                 'items.deliveryChallanItem',
                 'items.orderBooking',
-                'items.quotation',
             ]);
         });
     }
@@ -133,7 +132,6 @@ class InvoiceService
                 'items.deliveryChallan',
                 'items.deliveryChallanItem',
                 'items.orderBooking',
-                'items.quotation',
             ]);
         });
     }
@@ -174,7 +172,6 @@ class InvoiceService
         $items = DeliveryChallanItem::with([
             'deliveryChallan.customer',
             'orderBooking',
-            'quotation',
         ])
             ->where('delivery_challan_id', $deliveryChallanId)
             ->where('remaining_invoice_quantity', '>', 0)
@@ -219,7 +216,6 @@ class InvoiceService
             $dcItem->loadMissing([
                 'deliveryChallan',
                 'orderBooking',
-                'quotation',
             ]);
 
             $lockedDcItem = DeliveryChallanItem::lockForUpdate()->findOrFail($dcItem->id);

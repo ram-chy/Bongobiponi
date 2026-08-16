@@ -161,7 +161,7 @@
             <td class="label">Expected Delivery:</td>
             <td class="value">{{ $order->expected_delivery_date ? $order->expected_delivery_date->format('d M Y') : 'N/A' }}</td>
             <td class="label">Status:</td>
-            <td class="value">{{ ucfirst($order->status) }}</td>
+            <td class="value">{{ ucfirst(str_replace('_', ' ', $order->status->value)) }}</td>
         </tr>
         <tr>
             <td class="label">Prepared By:</td>

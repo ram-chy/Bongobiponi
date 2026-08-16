@@ -29,7 +29,7 @@ class OrderFactory extends Factory
             'grand_total' => 0,
             'currency' => 'INR',
             'exchange_rate' => 1,
-            'status' => 'draft',
+            'status' => 'intake',
             'notes' => fake()->optional()->sentence(),
             'created_by' => User::factory(),
         ];

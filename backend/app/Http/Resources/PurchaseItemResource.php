@@ -17,6 +17,8 @@ class PurchaseItemResource extends JsonResource
             'ordered_quantity' => $this->ordered_quantity,
             'received_quantity' => $this->received_quantity,
             'purchase_price' => $this->purchase_price,
+            'printed_price' => $this->printed_price,
+            'discount_percentage' => $this->discount_percentage,
             'total' => $this->total,
             'remarks' => $this->remarks,
             'created_at' => $this->created_at,

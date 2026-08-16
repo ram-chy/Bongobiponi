@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -11,6 +12,7 @@ class OrderService
 {
     public function __construct(
         private readonly OrderSerialGeneratorService $serialGenerator,
+        private readonly OrderStatusTransitionService $statusTransitionService,
     ) {}
 
     public function list(array $filters): LengthAwarePaginator
@@ -32,6 +34,7 @@ class OrderService
 
             $data['order_serial'] = $this->serialGenerator->generate();
             $data['order_source'] = 'manual';
+            $data['status'] = OrderStatus::Intake->value;
 
             $preparedItems = $this->prepareItems($items);
             $calculated = $this->calculateTotals($preparedItems);
@@ -44,6 +47,13 @@ class OrderService
             $order = Order::create($data);
 
             $this->syncItems($order, $preparedItems);
+
+            $order->statusHistories()->create([
+                'from_status' => null,
+                'to_status' => OrderStatus::Intake->value,
+                'changed_by' => $order->created_by,
+                'reason' => 'Order created',
+            ]);
 
             return $order->load(['customer', 'creator', 'items']);
         });
@@ -99,6 +109,7 @@ class OrderService
                 'quotation_id' => null,
                 'quotation_item_id' => null,
                 'source_type' => 'manual',
+                'book_id' => $item['book_id'] ?? null,
                 'item_no' => $index + 1,
                 'description' => $item['description'] ?? '',
                 'unit' => $item['unit'] ?? '',
@@ -161,10 +172,18 @@ class OrderService
     {
         $hasRemaining = $order->items()->where('remaining_order_quantity', '>', 0)->exists();
 
-        if ($hasRemaining && $order->status === 'completed') {
-            $order->update(['status' => 'draft']);
-        } elseif (! $hasRemaining && $order->status !== 'completed') {
-            $order->update(['status' => 'completed']);
+        if ($hasRemaining && $order->status === OrderStatus::Delivered) {
+            $this->statusTransitionService->transitionForFulfillment(
+                $order,
+                OrderStatus::Intake,
+                'Order reopened for fulfillment'
+            );
+        } elseif (! $hasRemaining && $order->status !== OrderStatus::Delivered) {
+            $this->statusTransitionService->transitionForFulfillment(
+                $order,
+                OrderStatus::Delivered,
+                'Order fully delivered'
+            );
         }
     }
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { EntityPage } from "@/components/common/entity-page";
-import { BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Download, Loader2 } from "lucide-react";
+import { useBookExport } from "@/features/books/hooks/use-book-export";
 import type { Book } from "@/types/book";
 import type { EntityConfig, ColumnDef } from "@/types/entity";
 
@@ -62,20 +64,36 @@ const columns: ColumnDef<Book>[] = [
   },
 ];
 
-const bookConfig: EntityConfig<Book> = {
-  title: "Book Management",
-  description: "Manage book inventory.",
-  endpoint: "/books",
-  createRoute: "/books/create",
-  viewRoute: "/books/:id",
-  editRoute: "/books/:id/edit",
-  columns,
-  searchPlaceholder: "Search books...",
-  defaultSort: { id: "created_at", desc: true },
-  perPage: 15,
-};
-
 export function BooksPage() {
+  const exportMutation = useBookExport();
+
+  const bookConfig: EntityConfig<Book> = {
+    title: "Book Management",
+    description: "Manage book inventory.",
+    endpoint: "/books",
+    createRoute: "/books/create",
+    viewRoute: "/books/:id",
+    editRoute: "/books/:id/edit",
+    columns,
+    searchPlaceholder: "Search books...",
+    defaultSort: { id: "created_at", desc: true },
+    perPage: 15,
+    headerActions: (
+      <Button
+        variant="outline"
+        onClick={() => exportMutation.mutate()}
+        disabled={exportMutation.isPending}
+      >
+        {exportMutation.isPending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Download className="size-4" />
+        )}
+        Export XLSX
+      </Button>
+    ),
+  };
+
   return (
     <EntityPage
       config={bookConfig}

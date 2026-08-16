@@ -16,6 +16,8 @@ class PurchaseItem extends Model
         'ordered_quantity',
         'received_quantity',
         'purchase_price',
+        'printed_price',
+        'discount_percentage',
         'total',
         'remarks',
     ];
@@ -26,6 +28,8 @@ class PurchaseItem extends Model
             'ordered_quantity' => 'integer',
             'received_quantity' => 'integer',
             'purchase_price' => 'decimal:2',
+            'printed_price' => 'decimal:2',
+            'discount_percentage' => 'decimal:2',
             'total' => 'decimal:2',
         ];
     }

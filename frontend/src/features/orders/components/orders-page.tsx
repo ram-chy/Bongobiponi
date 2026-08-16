@@ -7,17 +7,18 @@ import type { SortingState } from "@tanstack/react-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { DataTable } from "@/components/tables/data-table";
 import { PageBreadcrumb } from "@/components/breadcrumb/page-breadcrumb";
 import { PageHeader } from "@/components/page-header/page-header";
-import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
 import { RowActions } from "@/components/common/row-actions";
 import { FilterPanel } from "@/components/filters/filter-panel";
 import { useOrderList } from "@/features/orders/hooks/use-order-list";
 import { useOrderDelete } from "@/features/orders/hooks/use-order-delete";
 import { useOrderDownload } from "@/features/orders/hooks/use-order-download";
+import { OrderStatusBadge } from "@/features/orders/components/order-status-badge";
+import { ORDER_STATUS_OPTIONS } from "@/features/orders/order-status-meta";
 import { cn } from "@/lib/utils";
 import type { Order } from "@/types/order";
 
@@ -29,13 +30,6 @@ function fmtDate(d: string | undefined | null): string {
   if (parts.length !== 3) return d.slice(0, 10);
   return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
 }
-
-const statusVariants: Record<string, "default" | "secondary" | "destructive" | "outline" | "ghost" | "link"> = {
-  draft: "default",
-  confirmed: "secondary",
-  cancelled: "destructive",
-  completed: "default",
-};
 
 export function OrdersPage() {
   const router = useRouter();
@@ -123,18 +117,7 @@ export function OrdersPage() {
         header: "Status",
         accessorKey: "status",
         enableSorting: true,
-        cell: ({ row }) => (
-          <Badge
-            variant={statusVariants[row.original.status] ?? "default"}
-            className={
-              row.original.status === "completed"
-                ? "bg-emerald-600 hover:bg-emerald-600/80"
-                : undefined
-            }
-          >
-            {row.original.status.toUpperCase()}
-          </Badge>
-        ),
+        cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
       },
     ],
     []
@@ -182,12 +165,10 @@ export function OrdersPage() {
             type: "select",
             value: statusFilter,
             onChange: (v) => { setStatusFilter(v); setPage(0); },
-            options: [
-              { label: "Draft", value: "draft" },
-              { label: "Confirmed", value: "confirmed" },
-              { label: "Cancelled", value: "cancelled" },
-              { label: "Completed", value: "completed" },
-            ],
+            options: ORDER_STATUS_OPTIONS.map((option) => ({
+              label: option.label,
+              value: option.value,
+            })),
           },
           {
             id: "date_from",

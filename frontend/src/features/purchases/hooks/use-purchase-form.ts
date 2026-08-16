@@ -8,9 +8,10 @@ import { AxiosError } from "axios";
 
 interface UsePurchaseFormOptions {
   id?: number;
+  onCreated?: (purchaseId: number) => void;
 }
 
-export function usePurchaseForm({ id }: UsePurchaseFormOptions = {}) {
+export function usePurchaseForm({ id, onCreated }: UsePurchaseFormOptions = {}) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -19,13 +20,21 @@ export function usePurchaseForm({ id }: UsePurchaseFormOptions = {}) {
       id
         ? purchaseService.update(id, data)
         : purchaseService.create(data),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["/purchases"] });
       toast.success(
         id
           ? "Purchase updated successfully"
           : "Purchase created successfully"
       );
+
+      const createdId = response?.data?.data?.id as number | undefined;
+
+      if (!id && createdId && onCreated) {
+        onCreated(createdId);
+        return;
+      }
+
       router.push("/purchases");
     },
     onError: (error) => {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
 use App\Models\Scopes\CreatedByScope;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'currency',
     'exchange_rate',
     'status',
+    'pre_book',
     'reference_notes',
     'notes',
     'created_by',
@@ -52,6 +54,8 @@ class Order extends Model
             'tax_amount' => 'decimal:2',
             'grand_total' => 'decimal:2',
             'exchange_rate' => 'decimal:4',
+            'status' => OrderStatus::class,
+            'pre_book' => 'boolean',
             'approved_at' => 'datetime',
             'confirmed_at' => 'datetime',
             'pdf_generated_at' => 'datetime',
@@ -78,4 +82,18 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function comments(): HasMany
+    {
+        return $this->hasMany(OrderComment::class);
+    }
+
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(OrderStatusHistory::class);
+    }
+
+    public function stockReservations(): HasMany
+    {
+        return $this->hasMany(OrderStockReservation::class);
+    }
 }

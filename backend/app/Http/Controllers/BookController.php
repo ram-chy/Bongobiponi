@@ -9,15 +9,18 @@ use App\Http\Resources\BookResource;
 use App\Models\Book;
 use App\Services\BookService;
 use App\Services\SafeDeleteEngine;
+use App\Services\SpreadsheetExporterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BookController extends Controller
 {
     public function __construct(
         private readonly BookService $bookService,
         private readonly SafeDeleteEngine $safeDeleteEngine,
+        private readonly SpreadsheetExporterService $spreadsheetExporter,
     ) {}
 
     public function index(Request $request): BookCollection
@@ -79,6 +82,49 @@ class BookController extends Controller
         $this->bookService->restore($id);
 
         return $this->successResponse(new BookResource($book->fresh()->load(['creator', 'updater', 'publisher', 'category', 'authors'])), 'Book restored successfully');
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Book::class);
+
+        $books = Book::query()
+            ->with(['publisher', 'category', 'authors', 'stock'])
+            ->orderBy('title')
+            ->get();
+
+        $headers = [
+            'Title', 'Subtitle', 'ISBN', 'Barcode', 'Publisher', 'Category', 'Authors',
+            'Edition', 'Language', 'Purchase Price', 'Selling Price', 'Minimum Stock',
+            'Current Stock', 'Description',
+        ];
+
+        $rows = $books->map(function (Book $book): array {
+            return [
+                $book->title,
+                $book->subtitle ?? '',
+                $book->isbn ?? '',
+                $book->barcode ?? '',
+                $book->publisher?->name ?? '',
+                $book->category?->name ?? '',
+                $book->authors->pluck('name')->join(', '),
+                $book->edition ?? '',
+                $book->language ?? '',
+                (float) $book->purchase_price,
+                (float) $book->selling_price,
+                (int) $book->minimum_stock,
+                (int) ($book->stock?->current_quantity ?? 0),
+                $book->description ?? '',
+            ];
+        })->all();
+
+        $filename = 'book-catalogue-' . now()->format('Y-m-d') . '.xlsx';
+
+        return response()->streamDownload(function () use ($headers, $rows) {
+            echo $this->spreadsheetExporter->toXlsx($headers, $rows, 'Catalogue');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     public function uploadCover(Request $request): JsonResponse

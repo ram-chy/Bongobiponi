@@ -79,6 +79,20 @@ class OrderTest extends TestCase
         $this->assertDatabaseCount('order_items', 2);
     }
 
+    public function test_new_order_starts_in_intake_status(): void
+    {
+        $response = $this->postJson('/api/orders', $this->validManualPayload(), $this->authHeaders());
+
+        $response->assertCreated();
+
+        $this->assertSame('intake', $response->json('data.status'));
+
+        $this->assertDatabaseHas('orders', [
+            'order_serial' => $response->json('data.order_serial'),
+            'status' => 'intake',
+        ]);
+    }
+
     public function test_order_serial_is_auto_generated(): void
     {
         $response = $this->postJson('/api/orders', $this->validManualPayload(), $this->authHeaders());
@@ -155,17 +169,17 @@ class OrderTest extends TestCase
     public function test_can_filter_by_status(): void
     {
         Order::factory()->create([
-            'status' => 'draft',
+            'status' => 'intake',
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
         ]);
         Order::factory()->create([
-            'status' => 'confirmed',
+            'status' => 'to_pack',
             'created_by' => $this->user->id,
             'customer_id' => $this->customer->id,
         ]);
 
-        $response = $this->getJson('/api/orders?status=draft', $this->authHeaders());
+        $response = $this->getJson('/api/orders?status=intake', $this->authHeaders());
 
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
@@ -317,7 +331,7 @@ class OrderTest extends TestCase
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
-            'status' => 'completed',
+            'status' => 'delivered',
         ]);
 
         $this->assertDatabaseHas('order_items', [
@@ -364,7 +378,7 @@ class OrderTest extends TestCase
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
-            'status' => 'completed',
+            'status' => 'delivered',
         ]);
 
         $this->deleteJson("/api/delivery-challans/{$deliveryChallanId}", [], $this->authHeaders())
@@ -372,12 +386,68 @@ class OrderTest extends TestCase
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
-            'status' => 'draft',
+            'status' => 'intake',
         ]);
 
         $this->assertDatabaseHas('order_items', [
             'id' => $orderItem->id,
             'remaining_order_quantity' => 10,
+        ]);
+    }
+
+    public function test_manual_order_persists_book_id_on_items(): void
+    {
+        $book = \App\Models\Book::factory()->create();
+
+        $payload = $this->validManualPayload();
+        $payload['items'][0]['book_id'] = $book->id;
+
+        $response = $this->postJson('/api/orders', $payload, $this->authHeaders());
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $response->json('data.id'),
+            'book_id' => $book->id,
+        ]);
+
+        $this->assertEquals(
+            $book->id,
+            $response->json('data.items.0.book_id')
+        );
+    }
+
+    public function test_order_requires_valid_book_id_when_provided(): void
+    {
+        $payload = $this->validManualPayload();
+        $payload['items'][0]['book_id'] = 999999;
+
+        $this->postJson('/api/orders', $payload, $this->authHeaders())
+            ->assertJsonValidationErrors(['items.0.book_id']);
+    }
+
+    public function test_manual_order_defaults_pre_book_to_false(): void
+    {
+        $response = $this->postJson('/api/orders', $this->validManualPayload(), $this->authHeaders());
+
+        $response->assertCreated();
+
+        $this->assertFalse($response->json('data.pre_book'));
+    }
+
+    public function test_manual_order_persists_pre_book_flag(): void
+    {
+        $payload = $this->validManualPayload();
+        $payload['pre_book'] = true;
+
+        $response = $this->postJson('/api/orders', $payload, $this->authHeaders());
+
+        $response->assertCreated();
+        $this->assertTrue($response->json('data.pre_book'));
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $response->json('data.id'),
+            'pre_book' => true,
         ]);
     }
 
